@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Tracking</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style> body { font-family: sans-serif; text-align: center; padding: 20px; } .qr-box { display: inline-block; margin: 20px; } </style>
+</head>
+<body>
+    <h1>Generator QR Tracking</h1>
+    <input type="text" id="vehicleId" placeholder="Masukkan ID (cth: Angkot-01)" value="Angkot-01">
+    <button onclick="generateQR()">Generate</button>
+
+    <div id="result" style="margin-top: 30px;"></div>
+
+    <script>
+        function generateQR() {
+            const id = document.getElementById('vehicleId').value;
+            const baseUrl = window.location.origin;
+            
+            // URL untuk Sopir dan Penumpang
+            const driverUrl = `${baseUrl}/driver.html?id=${id}`;
+            const trackUrl = `${baseUrl}/track.html?id=${id}`;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="qr-box">
+                    <h3>QR Sopir (Scan HP Sopir)</h3>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(driverUrl)}" alt="QR Driver">
+                    <p><small>Link: ${driverUrl}</small></p>
+                </div>
+                <div class="qr-box">
+                    <h3>QR Penumpang (Tempel di Angkot)</h3>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackUrl)}" alt="QR Track">
+                    <p><small>Link: ${trackUrl}</small></p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

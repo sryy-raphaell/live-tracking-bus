@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mode Sopir</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/socket.io/socket.io.js"></script>
+    <style> body { font-family: sans-serif; text-align: center; background: #f0f0f0; } .status { font-size: 1.2em; margin-top: 20px; } </style>
+</head>
+<body>
+    <h1>🚐 Mode Sopir</h1>
+    <p>Kendaraan: <b id="vid">...</b></p>
+    <div class="status" id="status">Menunggu Izin Lokasi...</div>
+    <p id="coords">Koordinat: -</p>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const vehicleId = params.get('id') || 'Default-ID';
+        document.getElementById('vid').innerText = vehicleId;
+
+        const socket = io();
+        
+        // Gabung ke room berdasarkan ID Kendaraan
+        socket.on('connect', () => {
+            socket.emit('joinRoom', vehicleId);
+            document.getElementById('status').innerText = "Terhubung. Mengirim lokasi...";
+        });
+
+        // Cek dukungan Geolocation
+        if ("geolocation" in navigator) {
+            // watchPosition akan update otomatis saat HP bergerak
+            navigator.geolocation.watchPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
+                
+                // Kirim ke server
+                socket.emit('updateLocation', {
+                    vehicleId: vehicleId,
+                    lat: lat,
+                    lng: lng
+                });
+            }, (error) => {
+                document.getElementById('status').innerText = "Error: " + error.message;
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 10000 // Update maksimal setiap 10 detik untuk hemat baterai
+            });
+        } else {
+            document.getElementById('status').innerText = "GPS tidak didukung di HP ini.";
+        }
+    </script>
+</body>
+</html>
