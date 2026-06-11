@@ -1,54 +1,412 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+
 <head>
+    <meta charset="UTF-8">
     <title>Mode Sopir</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
     <script src="/socket.io/socket.io.js"></script>
-    <style> body { font-family: sans-serif; text-align: center; background: #f0f0f0; } .status { font-size: 1.2em; margin-top: 20px; } </style>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="css/driver.css">
 </head>
+
 <body>
-    <h1>🚐 Mode Sopir</h1>
-    <p>Kendaraan: <b id="vid">...</b></p>
-    <div class="status" id="status">Menunggu Izin Lokasi...</div>
-    <p id="coords">Koordinat: -</p>
+    <div class="card">
+
+        <!-- ══ LAYAR 1: LOGIN ══ -->
+        <div id="screen-login" class="screen active">
+            <div class="card-icon accent">
+                <i data-lucide="lock-keyhole" class="icon-lg"></i>
+            </div>
+            <div class="card-title">Login Sopir</div>
+            <div class="card-sub">Pilih nama kamu dan masukkan PIN untuk mulai bertugas.</div>
+            <div class="vehicle-badge" id="login-vehicle-badge">
+                <i data-lucide="bus-front" class="icon-sm"></i>
+                <span>—</span>
+            </div>
+
+            <div class="error-msg" id="login-error">Nama atau PIN salah. Coba lagi.</div>
+
+            <div class="form-group search-container">
+                <label class="form-label">Nama Sopir</label>
+                <input type="text" id="search-driver" class="form-input" placeholder="Ketik nama kamu..."
+                    autocomplete="off">
+                <div id="driver-suggestions" class="suggestions-list"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">PIN (4 angka)</label>
+                <div class="pin-tap-area" onclick="document.getElementById('pin-input').focus()">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot" id="d0"></div>
+                        <div class="pin-dot" id="d1"></div>
+                        <div class="pin-dot" id="d2"></div>
+                        <div class="pin-dot" id="d3"></div>
+                    </div>
+                    <input type="password" inputmode="numeric" maxlength="4" id="pin-input" class="pin-input"
+                        oninput="onPinInput()" onkeydown="onPinKey(event)">
+                    <p>Ketuk di sini lalu masukkan 4 angka PIN kamu</p>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-full" id="btn-login" onclick="doLogin()" disabled>
+                <i data-lucide="log-in" class="icon-sm"></i>
+                Masuk
+            </button>
+        </div>
+
+        <!-- ══ LAYAR 2: PANDUAN GPS ══ -->
+        <div id="screen-guide" class="screen">
+            <div class="card-icon success">
+                <i data-lucide="hand" class="icon-lg"></i>
+            </div>
+            <div class="card-title">Halo, <span id="guide-name">Sopir</span>!</div>
+            <div class="card-sub">Sebelum mulai, baca panduan singkat ini ya.</div>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">Sebentar lagi HP kamu akan <b>minta izin lokasi</b>. Ini penting agar posisi
+                        kamu bisa terpantau.</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">Kalau muncul kotak seperti di bawah, <b>pilih "Izinkan" atau "Allow"</b> —
+                        jangan pilih Tolak.</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text"><b>Biarkan halaman ini tetap terbuka</b> selama bertugas. Jangan ditutup.
+                    </div>
+                </div>
+            </div>
+
+            <div class="permission-preview">
+                <div class="pp-title">Contoh tampilan yang akan muncul:</div>
+                <div class="pp-msg">
+                    <i data-lucide="globe" style="width:18px;height:18px;color:var(--accent);"></i>
+                    Izinkan situs ini mengakses lokasi Anda?
+                </div>
+                <div class="pp-buttons">
+                    <div class="pp-btn allow">
+                        <i data-lucide="check" style="width:12px;height:12px;display:inline;vertical-align:middle;"></i>
+                        Izinkan
+                    </div>
+                    <div class="pp-btn deny">Tolak</div>
+                </div>
+            </div>
+            <div class="arrow-hint">
+                <i data-lucide="arrow-up" class="icon-sm"></i>
+                Pilih yang ini ya, Pak/Bu!
+            </div>
+
+            <button class="btn btn-success w-full" onclick="mulaiTracking()">
+                <i data-lucide="navigation" class="icon-sm"></i>
+                Saya Siap, Mulai Bertugas
+            </button>
+        </div>
+
+        <!-- ══ LAYAR 3: TRACKING AKTIF ══ -->
+        <div id="screen-tracking" class="screen">
+            <div style="margin-bottom: var(--sp-sm);">
+                <i data-lucide="bus-front" class="icon-xl" style="color: var(--accent);"></i>
+            </div>
+            <div style="font-size: var(--fs-2xl); font-weight:700; margin-bottom: var(--sp-xs);">Sedang Bertugas</div>
+            <div class="vehicle-badge" id="tracking-vehicle-badge">
+                <i data-lucide="bus-front" class="icon-sm"></i>
+                <span>—</span>
+            </div>
+
+            <div class="driver-info-bar">
+                <i data-lucide="user" class="icon-sm"></i>
+                <span>Sopir: <b id="tracking-driver-name">—</b></span>
+            </div>
+
+            <div class="status-ring waiting" id="ring">
+                <i data-lucide="loader" class="icon-xl" id="ring-icon"></i>
+            </div>
+            <p id="status-text">Meminta izin lokasi...</p>
+
+            <div class="coords-box" style="margin-bottom: 14px;">
+                Lat: <span id="lat">—</span> &nbsp;|&nbsp; Lng: <span id="lng">—</span><br>
+                Akurasi: <span id="acc">—</span> meter
+            </div>
+
+            <div class="badge-row">
+                <span class="badge badge-outline" id="badge-socket">
+                    <i data-lucide="zap" class="icon-sm"></i> Connecting
+                </span>
+                <span class="badge badge-outline" id="badge-wake">
+                    <i data-lucide="sun" class="icon-sm"></i> Layar: off
+                </span>
+                <span class="badge badge-outline">
+                    <i data-lucide="radio-tower" class="icon-sm"></i> Terkirim: <span id="update-count">0</span>x
+                </span>
+            </div>
+
+            <button class="btn btn-danger-outline w-full" style="margin-top: var(--sp-lg);" onclick="selesaiBertugas()"
+                id="btn-stop">
+                <i data-lucide="hand" class="icon-sm"></i>
+                Selesai Bertugas
+            </button>
+        </div>
+
+    </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const vehicleId = params.get('id') || 'Default-ID';
-        document.getElementById('vid').innerText = vehicleId;
+        const vehicleId = params.get('id') || 'Angkot-01';
 
-        const socket = io();
-        
-        // Gabung ke room berdasarkan ID Kendaraan
-        socket.on('connect', () => {
-            socket.emit('joinRoom', vehicleId);
-            document.getElementById('status').innerText = "Terhubung. Mengirim lokasi...";
+        let loggedDriver = null;
+        let updateCount = 0;
+        let watchId = null;
+        let socket = null;
+
+        // ── Init: tampilkan badge & load daftar sopir ─────────────────────────
+        document.querySelector('#login-vehicle-badge span').innerText = vehicleId;
+
+        let selectedDriverName = '';
+        let debounceTimeout = null;
+
+        async function fetchDrivers(query = '') {
+            try {
+                const res = await fetch(`/api/drivers/${encodeURIComponent(vehicleId)}?q=${encodeURIComponent(query)}`);
+                const list = await res.json();
+                renderSuggestions(list);
+            } catch (e) {
+                console.error('Gagal load sopir:', e);
+            }
+        }
+
+        function renderSuggestions(list) {
+            const container = document.getElementById('driver-suggestions');
+            if (!list.length) {
+                container.innerHTML = '<div class="suggestion-item empty">Tidak ada sopir cocok</div>';
+                container.style.display = 'block';
+                return;
+            }
+
+            container.innerHTML = list.map(d => `
+            <div class="suggestion-item" onclick="selectDriver('${d.name.replace(/'/g, "\\'")}')">
+                ${d.name}
+            </div>
+        `).join('');
+            container.style.display = 'block';
+        }
+
+        window.selectDriver = function (name) {
+            selectedDriverName = name;
+            document.getElementById('search-driver').value = name;
+            document.getElementById('driver-suggestions').style.display = 'none';
+            validateForm();
+        };
+
+        // Debounce input handler
+        document.getElementById('search-driver').addEventListener('input', (e) => {
+            selectedDriverName = ''; // Reset selection when typing
+            validateForm();
+
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                fetchDrivers(e.target.value.trim());
+            }, 300);
         });
 
-        // Cek dukungan Geolocation
-        if ("geolocation" in navigator) {
-            // watchPosition akan update otomatis saat HP bergerak
-            navigator.geolocation.watchPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
-                
-                // Kirim ke server
-                socket.emit('updateLocation', {
-                    vehicleId: vehicleId,
-                    lat: lat,
-                    lng: lng
-                });
-            }, (error) => {
-                document.getElementById('status').innerText = "Error: " + error.message;
-            }, {
-                enableHighAccuracy: true,
-                maximumAge: 10000 // Update maksimal setiap 10 detik untuk hemat baterai
-            });
-        } else {
-            document.getElementById('status').innerText = "GPS tidak didukung di HP ini.";
+        // Show suggestions when input gets focus
+        document.getElementById('search-driver').addEventListener('focus', () => {
+            fetchDrivers(document.getElementById('search-driver').value.trim());
+        });
+
+        // Close suggestions on outside click
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('driver-suggestions');
+            const input = document.getElementById('search-driver');
+            if (e.target !== input && !container.contains(e.target)) {
+                container.style.display = 'none';
+            }
+        });
+
+        function validateForm() {
+            const pin = document.getElementById('pin-input').value;
+            document.getElementById('btn-login').disabled = !(pin.length === 4 && selectedDriverName);
         }
+
+        // ── PIN input ─────────────────────────────────────────────────────────
+        function onPinInput() {
+            const val = document.getElementById('pin-input').value;
+            for (let i = 0; i < 4; i++) {
+                document.getElementById('d' + i).classList.toggle('filled', i < val.length);
+            }
+            validateForm();
+        }
+
+        function onPinKey(e) {
+            // Hanya izinkan angka
+            if (!/[0-9]/.test(e.key) && !['Backspace', 'Tab', 'Enter'].includes(e.key)) {
+                e.preventDefault();
+            }
+            if (e.key === 'Enter') doLogin();
+        }
+
+        // ── Login ─────────────────────────────────────────────────────────────
+        async function doLogin() {
+            const name = selectedDriverName;
+            const pin = document.getElementById('pin-input').value;
+            const btn = document.getElementById('btn-login');
+            const err = document.getElementById('login-error');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="icon-sm" style="animation: spin 1s linear infinite;"></i> Memeriksa...';
+            lucide.createIcons({ nodes: [btn] });
+            err.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/driver/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicleId, name, pin })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    loggedDriver = data.name;
+                    document.getElementById('guide-name').innerText = loggedDriver.split(' ')[1] || loggedDriver;
+                    showScreen('screen-guide');
+                } else {
+                    err.innerText = data.message || 'Nama atau PIN salah.';
+                    err.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="log-in" class="icon-sm"></i> Masuk';
+                    lucide.createIcons({ nodes: [btn] });
+                    // Kosongkan PIN
+                    document.getElementById('pin-input').value = '';
+                    onPinInput();
+                }
+            } catch (e) {
+                err.innerText = 'Gagal terhubung ke server.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="log-in" class="icon-sm"></i> Masuk';
+                lucide.createIcons({ nodes: [btn] });
+            }
+        }
+
+        // ── Mulai tracking (setelah baca panduan) ─────────────────────────────
+        function mulaiTracking() {
+            document.querySelector('#tracking-vehicle-badge span').innerText = vehicleId;
+            document.getElementById('tracking-driver-name').innerText = loggedDriver;
+            showScreen('screen-tracking');
+            initSocket();
+            initGPS();
+            keepAwake();
+        }
+
+        // ── Socket.io ─────────────────────────────────────────────────────────
+        function initSocket() {
+            socket = io();
+            const badge = document.getElementById('badge-socket');
+
+            socket.on('connect', () => {
+                badge.innerHTML = '<i data-lucide="zap" class="icon-sm"></i> Terhubung';
+                badge.classList.add('active');
+                lucide.createIcons({ nodes: [badge] });
+                socket.emit('driverJoin', { vehicleId, driverName: loggedDriver });
+            });
+
+            socket.on('disconnect', () => {
+                badge.innerHTML = '<i data-lucide="zap" class="icon-sm"></i> Terputus';
+                badge.classList.remove('active');
+                lucide.createIcons({ nodes: [badge] });
+                setRing('error', 'x-circle');
+                setStatus('Koneksi terputus.\nCek jaringan internet kamu.');
+            });
+        }
+
+        // ── GPS ───────────────────────────────────────────────────────────────
+        function initGPS() {
+            if (!('geolocation' in navigator)) {
+                setRing('error', 'x-circle');
+                setStatus('GPS tidak didukung di HP ini.');
+                return;
+            }
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = Math.round(pos.coords.accuracy);
+
+                    document.getElementById('lat').innerText = lat.toFixed(6);
+                    document.getElementById('lng').innerText = lng.toFixed(6);
+                    document.getElementById('acc').innerText = acc;
+
+                    if (socket) socket.emit('updateLocation', { vehicleId, lat, lng });
+
+                    updateCount++;
+                    document.getElementById('update-count').innerText = updateCount;
+                    setRing('active', 'radio-tower');
+                    setStatus(`Lokasi berhasil dikirim ✓\n${new Date().toLocaleTimeString('id-ID')}`);
+                },
+                (err) => {
+                    setRing('error', 'x-circle');
+                    if (err.code === 1) {
+                        setStatus('Izin lokasi ditolak.\nMohon izinkan akses lokasi di pengaturan browser, lalu muat ulang halaman ini.');
+                    } else {
+                        setStatus('GPS error: ' + err.message);
+                    }
+                },
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+            );
+        }
+
+        // ── WakeLock ──────────────────────────────────────────────────────────
+        async function keepAwake() {
+            const badge = document.getElementById('badge-wake');
+            if ('wakeLock' in navigator) {
+                try {
+                    await navigator.wakeLock.request('screen');
+                    badge.innerHTML = '<i data-lucide="sun" class="icon-sm"></i> Layar: on';
+                    badge.classList.add('active');
+                    lucide.createIcons({ nodes: [badge] });
+                } catch (e) {
+                    badge.innerHTML = '<i data-lucide="sun" class="icon-sm"></i> Layar: gagal';
+                    lucide.createIcons({ nodes: [badge] });
+                }
+            }
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') keepAwake();
+        });
+
+        // ── Selesai bertugas ──────────────────────────────────────────────────
+        function selesaiBertugas() {
+            if (!confirm('Apakah kamu yakin ingin mengakhiri tugas?')) return;
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            if (socket) socket.disconnect();
+            setRing('waiting', 'check-circle');
+            setStatus('Terima kasih sudah bertugas hari ini!\nHalaman ini bisa ditutup.');
+            document.getElementById('btn-stop').style.display = 'none';
+        }
+
+        // ── Utils ─────────────────────────────────────────────────────────────
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            lucide.createIcons();
+        }
+        function setRing(state, iconName) {
+            const ring = document.getElementById('ring');
+            ring.className = 'status-ring ' + state;
+            ring.innerHTML = `<i data-lucide="${iconName}" class="icon-xl"></i>`;
+            lucide.createIcons({ nodes: [ring] });
+        }
+        function setStatus(text) {
+            document.getElementById('status-text').innerText = text;
+        }
+
+        // Init Lucide icons
+        lucide.createIcons();
     </script>
 </body>
+
 </html>

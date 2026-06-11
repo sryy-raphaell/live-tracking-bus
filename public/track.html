@@ -1,54 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+
 <head>
-    <title>Live Tracking</title>
+    <meta charset="UTF-8">
+    <title>Live Tracking Angkot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { margin: 0; padding: 0; }
-        #map { height: 100vh; width: 100%; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-    </style>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="css/track.css">
 </head>
+
 <body>
-    <div id="info">
-        <b>Tracking: <span id="vid">...</span></b><br>
-        Status: <span id="status">Connecting...</span>
+    <div id="panel">
+        <h2>
+            <i data-lucide="radio" class="icon-sm" style="color: var(--accent);"></i>
+            Live Tracking
+        </h2>
+        <div id="vehicle-name">—</div>
+        <div id="status-label">
+            <span class="panel-dot" id="dot"></span>
+            <span id="status-text">Menghubungkan...</span>
+        </div>
+        <div id="last-update">Menunggu data pertama...</div>
     </div>
+
+    <div id="offline-banner">
+        <i data-lucide="wifi-off" class="icon-sm"></i>
+        Sopir sedang offline
+    </div>
+
     <div id="map"></div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const vehicleId = params.get('id') || 'Default-ID';
-        document.getElementById('vid').innerText = vehicleId;
+        const vehicleId = params.get('id') || 'Angkot-01';
+        document.getElementById('vehicle-name').innerText = vehicleId;
 
-        // Inisialisasi Peta (Default: Jakarta)
-        const map = L.map('map').setView([-6.2088, 106.8456], 13);
+        const dot = document.getElementById('dot');
+        const statusText = document.getElementById('status-text');
+        const lastUpdate = document.getElementById('last-update');
+        const offlineBanner = document.getElementById('offline-banner');
+
+        const map = L.map('map').setView([-0.9471, 100.4172], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
         }).addTo(map);
 
-        // Marker Angkot (Icon bisa diganti nanti)
-        let marker = L.marker([-6.2088, 106.8456]).addTo(map);
-        marker.bindPopup("Angkot Sedang Berjalan").openPopup();
+        const angkotIcon = L.divIcon({
+            html: `<div style="
+                background: var(--accent, #0ea5e9);
+                border-radius:50%;
+                width:40px;height:40px;
+                display:flex;align-items:center;
+                justify-content:center;
+                font-size:20px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.4);
+                border:3px solid white;
+            ">🚐</div>`,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            className: ''
+        });
+
+        let marker = null;
+        let firstUpdate = true;
 
         const socket = io();
 
         socket.on('connect', () => {
             socket.emit('joinRoom', vehicleId);
-            document.getElementById('status').innerText = "Menunggu lokasi...";
+            statusText.innerText = 'Menunggu lokasi sopir...';
         });
 
-        // Terima update lokasi
+        socket.on('disconnect', () => {
+            dot.className = 'panel-dot offline';
+            statusText.innerText = 'Koneksi terputus';
+        });
+
         socket.on('locationUpdate', (data) => {
             const { lat, lng } = data;
-            marker.setLatLng([lat, lng]);
-            map.panTo([lat, lng]); // Kamera mengikuti angkot
-            document.getElementById('status').innerText = "Live (Updated)";
+
+            if (!marker) {
+                marker = L.marker([lat, lng], { icon: angkotIcon }).addTo(map);
+                marker.bindPopup(`<b>${vehicleId}</b><br>Sedang beroperasi`).openPopup();
+            } else {
+                marker.setLatLng([lat, lng]);
+            }
+
+            if (firstUpdate) {
+                map.setView([lat, lng], 16);
+                firstUpdate = false;
+            } else {
+                map.panTo([lat, lng]);
+            }
+
+            const waktu = new Date().toLocaleTimeString('id-ID');
+            lastUpdate.innerText = `Diperbarui: ${waktu}`;
+            dot.className = 'panel-dot online';
+            statusText.innerText = 'Live';
+            offlineBanner.style.display = 'none';
         });
+
+        socket.on('driverStatus', (data) => {
+            if (data.online) {
+                dot.className = 'panel-dot online';
+                statusText.innerText = 'Sopir aktif';
+                offlineBanner.style.display = 'none';
+            } else {
+                dot.className = 'panel-dot offline';
+                statusText.innerText = 'Sopir offline';
+                offlineBanner.style.display = 'flex';
+                lastUpdate.innerText = 'Lokasi terakhir ditampilkan';
+            }
+        });
+
+        // Init Lucide icons
+        lucide.createIcons();
     </script>
 </body>
+
 </html>

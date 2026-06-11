@@ -1,0 +1,279 @@
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        #header {
+            background: var(--bg-card);
+            padding: var(--sp-md) var(--sp-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        #header h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+        }
+
+        #header p {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* ── Layout ── */
+        #body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #map {
+            flex: 1;
+        }
+
+        /* ── Panel samping ── */
+        #panel {
+            width: 280px;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-section {
+            padding: var(--sp-md) 14px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+        }
+
+        /* ── Lokasi saya ── */
+        #my-location-box {
+            padding: var(--sp-md) 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-md);
+        }
+
+        .my-loc-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--info);
+            box-shadow: 0 0 0 4px var(--info-ring);
+            flex-shrink: 0;
+        }
+
+        #my-location-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Daftar angkot ── */
+        #angkot-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--sp-sm);
+        }
+
+        #angkot-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #angkot-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .angkot-item {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--sp-md) 14px;
+            margin-bottom: var(--sp-sm);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--transition);
+            position: relative;
+        }
+
+        .angkot-item:hover {
+            border-color: var(--accent);
+        }
+
+        .angkot-item.nearest {
+            border-color: var(--success);
+        }
+
+        .angkot-item.offline {
+            opacity: 0.45;
+        }
+
+        .nearest-badge {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: var(--success);
+            color: white;
+            font-size: var(--fs-2xs);
+            font-weight: 700;
+            padding: 2px var(--sp-sm);
+            border-radius: var(--radius-full);
+            text-transform: uppercase;
+        }
+
+        .angkot-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--sp-sm);
+        }
+
+        .angkot-name-row {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+        }
+
+        .a-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-faint);
+            flex-shrink: 0;
+        }
+
+        .a-dot.online {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px var(--success-ring);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.1);
+            }
+        }
+
+        .angkot-name {
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .distance-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: var(--radius-full);
+        }
+
+        .distance-badge.near {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .distance-badge.medium {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .distance-badge.far {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted);
+        }
+
+        .distance-badge.nodata {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--text-faint);
+        }
+
+        .angkot-detail {
+            font-size: var(--fs-sm);
+            color: var(--text-dim);
+        }
+
+        .angkot-detail span {
+            color: var(--text-muted);
+        }
+
+        .eta-text {
+            font-size: var(--fs-sm);
+            color: var(--accent-light);
+            margin-top: var(--sp-xs);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--sp-xs);
+        }
+
+        /* ── Loading / Empty ── */
+        .info-msg {
+            text-align: center;
+            padding: var(--sp-2xl) var(--sp-lg);
+            font-size: var(--fs-base);
+            color: var(--text-faint);
+            line-height: 1.6;
+        }
+
+        /* ── Tombol izin lokasi ── */
+        #permission-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--sp-2xl) var(--sp-xl);
+            text-align: center;
+        }
+
+        #permission-screen h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: var(--sp-md);
+        }
+
+        #permission-screen p {
+            font-size: var(--fs-md);
+            color: var(--text-muted);
+            margin-bottom: var(--sp-xl);
+            line-height: 1.6;
+        }
+
+        .permission-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--sp-lg);
+            color: var(--accent);
+        }
+
+        @media (max-width: 600px) {
+            #panel {
+                display: none;
+            }
+        }

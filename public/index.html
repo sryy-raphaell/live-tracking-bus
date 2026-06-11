@@ -1,40 +1,137 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Tracking</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <style> body { font-family: sans-serif; text-align: center; padding: 20px; } .qr-box { display: inline-block; margin: 20px; } </style>
-</head>
-<body>
-    <h1>Generator QR Tracking</h1>
-    <input type="text" id="vehicleId" placeholder="Masukkan ID (cth: Angkot-01)" value="Angkot-01">
-    <button onclick="generateQR()">Generate</button>
+<html lang="id">
 
-    <div id="result" style="margin-top: 30px;"></div>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin — Tracking Angkot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>
+            <i data-lucide="layout-dashboard" class="icon-lg" style="color: var(--accent);"></i>
+            Admin Tracking
+        </h1>
+        <p>Generate QR kendaraan & pantau status armada</p>
+    </header>
+
+    <div class="generator">
+        <label class="form-label">ID Kendaraan</label>
+        <div class="input-row">
+            <input type="text" id="vehicleId" placeholder="cth: Angkot-01" value="Angkot-01">
+            <button onclick="generateQR()">
+                <i data-lucide="qr-code" class="icon-sm"></i>
+                Generate QR
+            </button>
+        </div>
+
+        <div id="qr-result" style="display:flex; flex-direction:row; flex-wrap:wrap;">
+            <div class="qr-card">
+                <h3>
+                    <i data-lucide="user-round" class="icon-sm"></i>
+                    QR Sopir
+                </h3>
+                <canvas id="qr-driver"></canvas>
+                <span class="qr-link" id="link-driver"></span>
+                <button class="btn btn-ghost" onclick="copyLink('driver')" style="margin-top: var(--sp-sm);">
+                    <i data-lucide="copy" class="icon-sm"></i>
+                    Salin Link
+                </button>
+            </div>
+            <div class="qr-card">
+                <h3>
+                    <i data-lucide="users-round" class="icon-sm"></i>
+                    QR Penumpang
+                </h3>
+                <canvas id="qr-track"></canvas>
+                <span class="qr-link" id="link-track"></span>
+                <button class="btn btn-ghost" onclick="copyLink('track')" style="margin-top: var(--sp-sm);">
+                    <i data-lucide="copy" class="icon-sm"></i>
+                    Salin Link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">
+        <span class="section-label">Kendaraan Terdaftar</span>
+        <span style="color: var(--text-ghost); font-size: var(--fs-xs);">auto-refresh 10s</span>
+    </div>
+    <div id="vehicle-list">
+        <div class="empty-state">Belum ada kendaraan aktif.</div>
+    </div>
 
     <script>
-        function generateQR() {
-            const id = document.getElementById('vehicleId').value;
-            const baseUrl = window.location.origin;
-            
-            // URL untuk Sopir dan Penumpang
-            const driverUrl = `${baseUrl}/driver.html?id=${id}`;
-            const trackUrl = `${baseUrl}/track.html?id=${id}`;
+        let driverUrl = '';
+        let trackUrl = '';
 
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `
-                <div class="qr-box">
-                    <h3>QR Sopir (Scan HP Sopir)</h3>
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(driverUrl)}" alt="QR Driver">
-                    <p><small>Link: ${driverUrl}</small></p>
-                </div>
-                <div class="qr-box">
-                    <h3>QR Penumpang (Tempel di Angkot)</h3>
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackUrl)}" alt="QR Track">
-                    <p><small>Link: ${trackUrl}</small></p>
-                </div>
-            `;
+        function generateQR() {
+            const id = document.getElementById('vehicleId').value.trim();
+            if (!id) return;
+            const base = window.location.origin;
+            driverUrl = `${base}/driver.html?id=${encodeURIComponent(id)}`;
+            trackUrl = `${base}/track.html?id=${encodeURIComponent(id)}`;
+
+            document.getElementById('link-driver').innerText = driverUrl;
+            document.getElementById('link-track').innerText = trackUrl;
+
+            QRCode.toCanvas(document.getElementById('qr-driver'), driverUrl, { width: 160, margin: 2 });
+            QRCode.toCanvas(document.getElementById('qr-track'), trackUrl, { width: 160, margin: 2 });
+
+            document.getElementById('qr-result').style.display = 'flex';
         }
+
+        function copyLink(type) {
+            const url = type === 'driver' ? driverUrl : trackUrl;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link disalin!');
+            });
+        }
+
+        async function loadVehicles() {
+            try {
+                const res = await fetch('/api/vehicles');
+                const list = await res.json();
+                const container = document.getElementById('vehicle-list');
+
+                if (!list.length) {
+                    container.innerHTML = '<div class="empty-state">Belum ada kendaraan aktif.</div>';
+                    return;
+                }
+
+                container.innerHTML = list.map(v => `
+                <div class="vehicle-item">
+                    <div class="left">
+                        <div class="status-dot ${v.isOnline ? 'online' : ''}"></div>
+                        <div>
+                            <div class="v-name">${v.id}</div>
+                            <div class="v-time">${v.isOnline ? 'Online' : `Offline · ${v.secsAgo}s lalu`}</div>
+                        </div>
+                    </div>
+                    <a class="btn-accent-sm btn" href="/track.html?id=${encodeURIComponent(v.id)}" target="_blank">
+                        <i data-lucide="map-pin" class="icon-sm"></i>
+                        Pantau
+                    </a>
+                </div>
+            `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error('Gagal load kendaraan:', e);
+            }
+        }
+
+        loadVehicles();
+        setInterval(loadVehicles, 10000);
+
+        // Init Lucide icons
+        lucide.createIcons();
     </script>
 </body>
+
 </html>

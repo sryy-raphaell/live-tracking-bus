@@ -1,0 +1,89 @@
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        #panel {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 1000;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 14px var(--sp-lg);
+            border-radius: 14px;
+            box-shadow: var(--shadow-popup);
+            min-width: 220px;
+            max-width: 280px;
+        }
+
+        #panel h2 {
+            font-size: var(--fs-lg);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--sp-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+        }
+
+        #vehicle-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: var(--sp-md);
+        }
+
+        .panel-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: var(--sp-sm);
+            background: var(--text-dim);
+        }
+
+        .panel-dot.online {
+            background: var(--success);
+            box-shadow: 0 0 0 3px var(--success-ring);
+        }
+
+        .panel-dot.offline {
+            background: var(--danger);
+        }
+
+        #status-label {
+            font-size: var(--fs-md);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+        }
+
+        #last-update {
+            font-size: var(--fs-sm);
+            color: var(--text-faint);
+            margin-top: var(--sp-sm);
+        }
+
+        #offline-banner {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: #7f1d1d;
+            color: #fecaca;
+            padding: var(--sp-md) 20px;
+            border-radius: var(--radius-full);
+            font-size: var(--fs-md);
+            font-weight: 600;
+            display: none;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            align-items: center;
+            gap: var(--sp-sm);
+        }
