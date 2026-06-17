@@ -18,7 +18,7 @@
             <i data-lucide="layout-dashboard" class="icon-lg" style="color: var(--accent);"></i>
             Admin Tracking
         </h1>
-        <p>Generate QR kendaraan & pantau status armada</p>
+        <p>Generate QR kendaraan &amp; pantau status armada</p>
     </header>
 
     <div class="generator">
@@ -31,7 +31,7 @@
             </button>
         </div>
 
-        <div id="qr-result" style="display:flex; flex-direction:row; flex-wrap:wrap;">
+        <div id="qr-result" style="display:none; flex-direction:row; flex-wrap:wrap;">
             <div class="qr-card">
                 <h3>
                     <i data-lucide="user-round" class="icon-sm"></i>
@@ -57,6 +57,16 @@
                 </button>
             </div>
         </div>
+
+        <!-- Info: kenapa URL ini aman dicetak -->
+        <div id="qr-info" style="display:none; margin-top: var(--sp-md); background: var(--bg-primary);
+             border-radius: var(--radius-md); padding: var(--sp-md) 14px;
+             font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.6;">
+            <span style="color: var(--success);">✓</span>
+            URL pendek <code style="color: var(--accent-light);">/t/</code> dan
+            <code style="color: var(--accent-light);">/d/</code> tidak berubah meski server pindah domain.
+            Aman untuk dicetak permanen.
+        </div>
     </div>
 
     <div class="section-title">
@@ -74,17 +84,22 @@
         function generateQR() {
             const id = document.getElementById('vehicleId').value.trim();
             if (!id) return;
+
+            // ── Gunakan short URL statis, bukan full URL dengan domain ──
+            // /d/:id  → sopir      (dicetak sekali, tidak berubah)
+            // /t/:id  → penumpang  (tempel di kendaraan/halte)
             const base = window.location.origin;
-            driverUrl = `${base}/driver.html?id=${encodeURIComponent(id)}`;
-            trackUrl = `${base}/track.html?id=${encodeURIComponent(id)}`;
+            driverUrl = `${base}/d/${encodeURIComponent(id)}`;
+            trackUrl  = `${base}/t/${encodeURIComponent(id)}`;
 
             document.getElementById('link-driver').innerText = driverUrl;
-            document.getElementById('link-track').innerText = trackUrl;
+            document.getElementById('link-track').innerText  = trackUrl;
 
             QRCode.toCanvas(document.getElementById('qr-driver'), driverUrl, { width: 160, margin: 2 });
-            QRCode.toCanvas(document.getElementById('qr-track'), trackUrl, { width: 160, margin: 2 });
+            QRCode.toCanvas(document.getElementById('qr-track'),  trackUrl,  { width: 160, margin: 2 });
 
             document.getElementById('qr-result').style.display = 'flex';
+            document.getElementById('qr-info').style.display   = 'block';
         }
 
         function copyLink(type) {
@@ -96,7 +111,7 @@
 
         async function loadVehicles() {
             try {
-                const res = await fetch('/api/vehicles');
+                const res  = await fetch('/api/vehicles');
                 const list = await res.json();
                 const container = document.getElementById('vehicle-list');
 
@@ -106,20 +121,20 @@
                 }
 
                 container.innerHTML = list.map(v => `
-                <div class="vehicle-item">
-                    <div class="left">
-                        <div class="status-dot ${v.isOnline ? 'online' : ''}"></div>
-                        <div>
-                            <div class="v-name">${v.id}</div>
-                            <div class="v-time">${v.isOnline ? 'Online' : `Offline · ${v.secsAgo}s lalu`}</div>
+                    <div class="vehicle-item">
+                        <div class="left">
+                            <div class="status-dot ${v.isOnline ? 'online' : ''}"></div>
+                            <div>
+                                <div class="v-name">${v.id}</div>
+                                <div class="v-time">${v.isOnline ? 'Online' : `Offline · ${v.secsAgo}s lalu`}</div>
+                            </div>
                         </div>
+                        <a class="btn-accent-sm btn" href="/track.html?id=${encodeURIComponent(v.id)}" target="_blank">
+                            <i data-lucide="map-pin" class="icon-sm"></i>
+                            Pantau
+                        </a>
                     </div>
-                    <a class="btn-accent-sm btn" href="/track.html?id=${encodeURIComponent(v.id)}" target="_blank">
-                        <i data-lucide="map-pin" class="icon-sm"></i>
-                        Pantau
-                    </a>
-                </div>
-            `).join('');
+                `).join('');
                 lucide.createIcons();
             } catch (e) {
                 console.error('Gagal load kendaraan:', e);
@@ -129,7 +144,6 @@
         loadVehicles();
         setInterval(loadVehicles, 10000);
 
-        // Init Lucide icons
         lucide.createIcons();
     </script>
 </body>

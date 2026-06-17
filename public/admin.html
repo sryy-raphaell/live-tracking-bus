@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel — Damri</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue-dark: #0B4FA3; --blue-mid: #1A73E8; --blue-light: #E8F1FF;
+      --yellow: #F5C518; --white: #FFFFFF; --gray-bg: #F7F9FF;
+      --text-dark: #0D1B3E; --text-mid: #2E3F66; --text-gray: #5A6A8A;
+      --border: #D8E5F8; --danger: #DC2626; --danger-bg: #FEF2F2;
+      --success: #16A34A; --success-bg: #F0FDF4;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--gray-bg); color: var(--text-dark); min-height: 100vh; }
+
+    /* ── LOCK ── */
+    #lock-screen { position: fixed; inset: 0; z-index: 999; background: var(--blue-dark); display: flex; align-items: center; justify-content: center; }
+    .lock-card { background: white; border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+    .lock-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: var(--blue-light); border-radius: 16px; margin: 0 auto 1rem; }
+    .lock-title { font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.3rem; }
+    .lock-sub { font-size: 0.85rem; color: var(--text-gray); margin-bottom: 1.5rem; }
+    .lock-input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: 'Inter', sans-serif; outline: none; transition: border 0.2s; text-align: center; letter-spacing: 0.1em; }
+    .lock-input:focus { border-color: var(--blue-dark); }
+    .lock-btn { width: 100%; margin-top: 1rem; background: var(--blue-dark); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .lock-btn:hover { background: var(--blue-mid); }
+    .lock-error { margin-top: 0.8rem; font-size: 0.82rem; color: var(--danger); display: none; }
+
+    /* ── LAYOUT ── */
+    #app { display: none; }
+    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 220px; background: var(--blue-dark); padding: 1.5rem 1rem; z-index: 50; display: flex; flex-direction: column; gap: 0.3rem; }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0.5rem 0.8rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 0.5rem; }
+    .sidebar-logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .sidebar-logo-text b { font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 800; color: white; }
+    .sidebar-logo-text small { font-size: 0.68rem; color: #93C5FD; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: background 0.15s; font-size: 0.88rem; font-weight: 500; color: #93C5FD; text-decoration: none; border: none; background: none; width: 100%; text-align: left; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav-item:hover svg { stroke: white; }
+    .nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-item.active svg { stroke: white; }
+    .nav-item svg { stroke: #93C5FD; transition: stroke 0.15s; flex-shrink: 0; }
+    .main { margin-left: 220px; padding: 2rem; min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-family: 'Poppins', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--text-dark); }
+    .page-sub { font-size: 0.85rem; color: var(--text-gray); margin-top: 2px; }
+    .topbar-actions { display: flex; gap: 0.8rem; }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; transition: 0.15s; font-family: 'Inter', sans-serif; }
+    .btn svg { flex-shrink: 0; }
+    .btn-blue { background: var(--blue-dark); color: white; }
+    .btn-blue:hover { background: var(--blue-mid); }
+    .btn-blue svg { stroke: white; }
+    .btn-ghost { background: white; color: var(--text-mid); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--blue-dark); color: var(--blue-dark); }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+    .btn-danger:hover { background: var(--danger); color: white; }
+    .btn-danger:hover svg { stroke: white; }
+    .btn-danger svg { stroke: var(--danger); transition: stroke 0.15s; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+    /* ── CARD ── */
+    .card { background: white; border-radius: 14px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 1.5rem; }
+    .card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-header-title { font-weight: 700; font-size: 0.95rem; color: var(--text-dark); }
+    .card-body { padding: 1.5rem; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 16px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-gray); background: var(--gray-bg); border-bottom: 1px solid var(--border); }
+    td { padding: 12px 16px; border-bottom: 1px solid #F1F5FD; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--gray-bg); }
+    .td-actions { display: flex; gap: 6px; }
+
+    /* ── BADGES ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+    .badge-blue { background: var(--blue-light); color: var(--blue-dark); }
+    .badge-green { background: var(--success-bg); color: var(--success); }
+    .badge-gray { background: #F1F5FD; color: #6B7A99; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(13,27,62,0.5); align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: var(--text-dark); }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text-gray); line-height: 1; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: background 0.15s; }
+    .modal-close:hover { background: var(--gray-bg); }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.8rem; }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-mid); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-input, .form-select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: 'Inter', sans-serif; color: var(--text-dark); background: white; outline: none; transition: border 0.2s; }
+    .form-input:focus, .form-select:focus { border-color: var(--blue-dark); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--text-dark); color: white; padding: 12px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 500; transform: translateY(100px); opacity: 0; transition: all 0.3s; max-width: 320px; display: flex; align-items: center; gap: 8px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+
+    /* ── SECTION ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── STATS ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.2rem 1.5rem; display: flex; flex-direction: column; gap: 6px; }
+    .stat-icon { width: 36px; height: 36px; background: var(--blue-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+    .stat-label { font-size: 0.75rem; color: var(--text-gray); }
+    .stat-num { font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--blue-dark); }
+    .empty-row td { text-align: center; color: var(--text-gray); padding: 2rem; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<!-- SVG DEFS -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-bus" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M7 15h.01M17 15h.01"/><path d="M6 19v2M18 19v2"/>
+  </symbol>
+  <symbol id="ic-dashboard" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  </symbol>
+  <symbol id="ic-logout" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+  </symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+  <symbol id="ic-edit" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+  </symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+  </symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </symbol>
+</svg>
+
+<!-- ── LOCK SCREEN ── -->
+<div id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-lock"/></svg>
+    </div>
+    <div class="lock-title">Admin Panel</div>
+    <div class="lock-sub">Damri Pesisir Selatan — Area Terbatas</div>
+    <input type="password" class="lock-input" id="pass-input" placeholder="Masukkan password" onkeydown="if(event.key==='Enter') doUnlock()">
+    <button class="lock-btn" onclick="doUnlock()">Masuk</button>
+    <div class="lock-error" id="lock-error">Password salah. Coba lagi.</div>
+    <div style="margin-top:1.5rem;">
+      <a href="/" style="font-size:0.8rem; color:#94a3b8; text-decoration:none;">← Kembali ke halaman utama</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><use href="#ic-bus"/></svg>
+      <div class="sidebar-logo-text">
+        <b>Admin Panel</b>
+        <small>Damri Pesisir Selatan</small>
+      </div>
+    </div>
+
+    <button class="nav-item active" onclick="showSection('dashboard', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-dashboard"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showSection('kendaraan', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-bus"/></svg>
+      Kendaraan
+    </button>
+    <button class="nav-item" onclick="showSection('sopir', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-user"/></svg>
+      Sopir
+    </button>
+    <button class="nav-item" onclick="showSection('sesi', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-list"/></svg>
+      Riwayat Sesi
+    </button>
+        <button class="nav-item" onclick="showSection(monitro.html, this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-list"/></svg>
+      Monitoring
+    </button>
+
+    <div style="margin-top:auto; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+      <a href="/" class="nav-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-home"/></svg>
+        Kembali ke Web
+      </a>
+      <button class="nav-item" onclick="doLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-logout"/></svg>
+        Keluar
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="sec-dashboard" class="section active">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Ringkasan sistem Damri Pesisir Selatan</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-bus"/></svg></div>
+          <div class="stat-label">Total Kendaraan</div>
+          <div class="stat-num" id="stat-kendaraan">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-user"/></svg></div>
+          <div class="stat-label">Total Sopir</div>
+          <div class="stat-num" id="stat-sopir">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--success-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><use href="#ic-check"/></svg></div>
+          <div class="stat-label">Aktif Online</div>
+          <div class="stat-num" id="stat-online" style="color:#16a34a;">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-list"/></svg></div>
+          <div class="stat-label">Sesi Hari Ini</div>
+          <div class="stat-num" id="stat-sesi">—</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-title">Status Armada Real-time</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-refresh"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kendaraan</th><th>Plat</th><th>Rute</th><th>Status</th><th>Terakhir Update</th></tr></thead>
+            <tbody id="dashboard-table"><tr class="empty-row"><td colspan="5">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KENDARAAN ── -->
+    <div id="sec-kendaraan" class="section">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Kendaraan</div>
+          <div class="page-sub">Kelola data armada bus Damri</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-blue" onclick="openModal('modal-kendaraan', 'tambah')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><use href="#ic-plus"/></svg>
+            Tambah Kendaraan
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kode</th><th>Plat Nomor</th><th>Rute</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="kendaraan-table"><tr class="empty-row"><td colspan="5">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SOPIR ── -->
+    <div id="sec-sopir" class="section">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sopir</div>
+          <div class="page-sub">Kelola data sopir dan akses PIN</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-blue" onclick="openModal('modal-sopir', 'tambah')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><use href="#ic-plus"/></svg>
+            Tambah Sopir
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>No. HP</th><th>PIN</th><th>Kendaraan</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="sopir-table"><tr class="empty-row"><td colspan="6">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SESI ── -->
+    <div id="sec-sesi" class="section">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Riwayat Sesi</div>
+          <div class="page-sub">Log aktivitas sopir</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadSesi()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-refresh"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kendaraan</th><th>Sopir</th><th>Mulai</th><th>Selesai</th><th>Status</th></tr></thead>
+            <tbody id="sesi-table"><tr class="empty-row"><td colspan="5">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── MODAL KENDARAAN ── -->
+<div class="modal-overlay" id="modal-kendaraan">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-kendaraan-title">Tambah Kendaraan</div>
+      <button class="modal-close" onclick="closeModal('modal-kendaraan')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="k-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Kode Kendaraan *</label>
+          <input class="form-input" id="k-code" placeholder="BD-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plat Nomor</label>
+          <input class="form-input" id="k-plate" placeholder="BA 1234 XY">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rute</label>
+        <input class="form-input" id="k-route" placeholder="Pasar Sago - Painan">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="k-active">
+          <option value="true">Aktif</option>
+          <option value="false">Nonaktif</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-kendaraan')">Batal</button>
+      <button class="btn btn-blue" onclick="saveKendaraan()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL SOPIR ── -->
+<div class="modal-overlay" id="modal-sopir">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-sopir-title">Tambah Sopir</div>
+      <button class="modal-close" onclick="closeModal('modal-sopir')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="s-id">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input class="form-input" id="s-name" placeholder="Pak Budi">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">No. HP</label>
+          <input class="form-input" id="s-phone" placeholder="081234567890">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PIN (4 angka) *</label>
+          <input class="form-input" id="s-pin" type="text" maxlength="6" placeholder="1234">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kendaraan</label>
+        <select class="form-select" id="s-vehicle">
+          <option value="">— Pilih Kendaraan —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="s-active">
+          <option value="true">Aktif</option>
+          <option value="false">Nonaktif</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sopir')">Batal</button>
+      <button class="btn btn-blue" onclick="saveSopir()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL HAPUS ── -->
+<div class="modal-overlay" id="modal-hapus">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">Konfirmasi Hapus</div>
+      <button class="modal-close" onclick="closeModal('modal-hapus')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.9rem; color:var(--text-mid); line-height:1.6;" id="hapus-msg">
+        Apakah kamu yakin ingin menghapus data ini?
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-hapus')">Batal</button>
+      <button class="btn btn-danger" id="hapus-confirm-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-trash"/></svg>
+        Ya, Hapus
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast">
+  <svg id="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+  const PASS = 'damri2025';
+
+  function doUnlock() {
+    if (document.getElementById('pass-input').value === PASS) {
+      document.getElementById('lock-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadDashboard(); loadKendaraan(); loadSopir();
+    } else {
+      document.getElementById('lock-error').style.display = 'block';
+      document.getElementById('pass-input').value = '';
+    }
+  }
+
+  function doLogout() {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('lock-screen').style.display = 'flex';
+    document.getElementById('pass-input').value = '';
+  }
+
+  function showSection(name, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (name === 'sesi') loadSesi();
+  }
+
+  function openModal(id, mode) {
+    document.getElementById(id).classList.add('open');
+    if (mode === 'tambah') {
+      if (id === 'modal-kendaraan') {
+        document.getElementById('modal-kendaraan-title').innerText = 'Tambah Kendaraan';
+        ['k-id','k-code','k-plate','k-route'].forEach(x => document.getElementById(x).value = '');
+        document.getElementById('k-active').value = 'true';
+      } else if (id === 'modal-sopir') {
+        document.getElementById('modal-sopir-title').innerText = 'Tambah Sopir';
+        ['s-id','s-name','s-phone','s-pin'].forEach(x => document.getElementById(x).value = '');
+        document.getElementById('s-vehicle').value = '';
+        document.getElementById('s-active').value = 'true';
+      }
+    }
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    document.getElementById('toast-msg').textContent = msg;
+    icon.innerHTML = type === 'success'
+      ? '<use href="#ic-check"/>'
+      : type === 'error' ? '<use href="#ic-alert"/>' : '';
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 2800);
+  }
+
+  /* DASHBOARD */
+  async function loadDashboard() {
+    try {
+      const res = await fetch('/api/vehicles');
+      const vehicles = await res.json();
+      const online = vehicles.filter(v => v.isOnline).length;
+      document.getElementById('stat-kendaraan').textContent = vehicles.length;
+      document.getElementById('stat-online').textContent = online;
+      const tbody = document.getElementById('dashboard-table');
+      tbody.innerHTML = vehicles.length
+        ? vehicles.map(v => `
+            <tr>
+              <td><strong>${v.id}</strong></td>
+              <td>${v.plate_number || '—'}</td>
+              <td>${v.route || '—'}</td>
+              <td><span class="badge ${v.isOnline ? 'badge-green' : 'badge-gray'}">${v.isOnline ? '● Online' : '○ Offline'}</span></td>
+              <td style="font-size:0.78rem;color:var(--text-gray)">${v.updatedAt ? new Date(v.updatedAt).toLocaleString('id-ID') : '—'}</td>
+            </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="5">Belum ada kendaraan.</td></tr>';
+    } catch (e) { console.error(e); }
+
+    try {
+      const r = await fetch('/api/admin/sopir');
+      if (r.ok) document.getElementById('stat-sopir').textContent = (await r.json()).length;
+    } catch (_) {}
+
+    try {
+      const r = await fetch('/api/admin/sesi?today=1');
+      if (r.ok) document.getElementById('stat-sesi').textContent = (await r.json()).length;
+    } catch (_) {}
+  }
+
+  /* KENDARAAN */
+  let kendaraanData = [];
+
+  async function loadKendaraan() {
+    try {
+      const res = await fetch('/api/admin/kendaraan');
+      kendaraanData = res.ok ? await res.json() : [];
+      const tbody = document.getElementById('kendaraan-table');
+      tbody.innerHTML = kendaraanData.length
+        ? kendaraanData.map(v => `
+            <tr>
+              <td><strong>${v.vehicle_code}</strong></td>
+              <td>${v.plate_number || '—'}</td>
+              <td>${v.route || '—'}</td>
+              <td><span class="badge ${v.is_active ? 'badge-green' : 'badge-gray'}">${v.is_active ? 'Aktif' : 'Nonaktif'}</span></td>
+              <td class="td-actions">
+                <button class="btn btn-ghost btn-sm" onclick="editKendaraan(${v.id})">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-edit"/></svg> Edit
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="confirmHapus('kendaraan', ${v.id}, '${v.vehicle_code}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-trash"/></svg>
+                </button>
+              </td>
+            </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="5">Belum ada kendaraan.</td></tr>';
+
+      const sel = document.getElementById('s-vehicle');
+      sel.innerHTML = '<option value="">— Pilih Kendaraan —</option>' +
+        kendaraanData.filter(v => v.is_active).map(v =>
+          `<option value="${v.id}">${v.vehicle_code} — ${v.route || v.plate_number || ''}</option>`).join('');
+    } catch (e) { console.error(e); }
+  }
+
+  function editKendaraan(id) {
+    const v = kendaraanData.find(x => x.id === id); if (!v) return;
+    document.getElementById('modal-kendaraan-title').innerText = 'Edit Kendaraan';
+    document.getElementById('k-id').value     = v.id;
+    document.getElementById('k-code').value   = v.vehicle_code;
+    document.getElementById('k-plate').value  = v.plate_number || '';
+    document.getElementById('k-route').value  = v.route || '';
+    document.getElementById('k-active').value = v.is_active ? 'true' : 'false';
+    openModal('modal-kendaraan');
+  }
+
+  async function saveKendaraan() {
+    const id = document.getElementById('k-id').value;
+    const body = { vehicle_code: document.getElementById('k-code').value.trim(), plate_number: document.getElementById('k-plate').value.trim(), route: document.getElementById('k-route').value.trim(), is_active: document.getElementById('k-active').value === 'true' };
+    if (!body.vehicle_code) { showToast('Kode kendaraan wajib diisi', 'error'); return; }
+    try {
+      const res = await fetch(id ? `/api/admin/kendaraan/${id}` : '/api/admin/kendaraan', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (res.ok) { showToast(id ? 'Kendaraan diperbarui' : 'Kendaraan ditambahkan', 'success'); closeModal('modal-kendaraan'); loadKendaraan(); loadDashboard(); }
+      else showToast(data.error || 'Gagal menyimpan', 'error');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
+  /* SOPIR */
+  let sopirData = [];
+
+  async function loadSopir() {
+    try {
+      const res = await fetch('/api/admin/sopir');
+      sopirData = res.ok ? await res.json() : [];
+      const tbody = document.getElementById('sopir-table');
+      tbody.innerHTML = sopirData.length
+        ? sopirData.map(d => `
+            <tr>
+              <td><strong>${d.name}</strong></td>
+              <td>${d.phone || '—'}</td>
+              <td><code style="background:#f1f5fd;padding:2px 7px;border-radius:4px;font-size:0.78rem;">${d.pin}</code></td>
+              <td>${d.vehicle_code ? `<span class="badge badge-blue">${d.vehicle_code}</span>` : '—'}</td>
+              <td><span class="badge ${d.is_active ? 'badge-green' : 'badge-gray'}">${d.is_active ? 'Aktif' : 'Nonaktif'}</span></td>
+              <td class="td-actions">
+                <button class="btn btn-ghost btn-sm" onclick="editSopir(${d.id})">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-edit"/></svg> Edit
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="confirmHapus('sopir', ${d.id}, '${d.name}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-trash"/></svg>
+                </button>
+              </td>
+            </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="6">Belum ada sopir.</td></tr>';
+    } catch (e) { console.error(e); }
+  }
+
+  function editSopir(id) {
+    const d = sopirData.find(x => x.id === id); if (!d) return;
+    document.getElementById('modal-sopir-title').innerText = 'Edit Sopir';
+    document.getElementById('s-id').value      = d.id;
+    document.getElementById('s-name').value    = d.name;
+    document.getElementById('s-phone').value   = d.phone || '';
+    document.getElementById('s-pin').value     = d.pin;
+    document.getElementById('s-vehicle').value = d.vehicle_id || '';
+    document.getElementById('s-active').value  = d.is_active ? 'true' : 'false';
+    openModal('modal-sopir');
+  }
+
+  async function saveSopir() {
+    const id = document.getElementById('s-id').value;
+    const body = { name: document.getElementById('s-name').value.trim(), phone: document.getElementById('s-phone').value.trim(), pin: document.getElementById('s-pin').value.trim(), vehicle_id: document.getElementById('s-vehicle').value || null, is_active: document.getElementById('s-active').value === 'true' };
+    if (!body.name) { showToast('Nama sopir wajib diisi', 'error'); return; }
+    if (!body.pin || body.pin.length < 4) { showToast('PIN minimal 4 angka', 'error'); return; }
+    try {
+      const res = await fetch(id ? `/api/admin/sopir/${id}` : '/api/admin/sopir', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (res.ok) { showToast(id ? 'Data sopir diperbarui' : 'Sopir ditambahkan', 'success'); closeModal('modal-sopir'); loadSopir(); loadDashboard(); }
+      else showToast(data.error || 'Gagal menyimpan', 'error');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
+  /* SESI */
+  async function loadSesi() {
+    try {
+      const res = await fetch('/api/admin/sesi');
+      const list = res.ok ? await res.json() : [];
+      const tbody = document.getElementById('sesi-table');
+      tbody.innerHTML = list.length
+        ? list.map(s => `
+            <tr>
+              <td><span class="badge badge-blue">${s.vehicle_code}</span></td>
+              <td>${s.driver_name}</td>
+              <td style="font-size:0.8rem">${new Date(s.started_at).toLocaleString('id-ID')}</td>
+              <td style="font-size:0.8rem">${s.ended_at ? new Date(s.ended_at).toLocaleString('id-ID') : '—'}</td>
+              <td><span class="badge ${s.status === 'active' ? 'badge-green' : 'badge-gray'}">${s.status === 'active' ? '● Aktif' : 'Selesai'}</span></td>
+            </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="5">Belum ada sesi.</td></tr>';
+    } catch (e) { console.error(e); }
+  }
+
+  /* HAPUS */
+  function confirmHapus(tipe, id, nama) {
+    document.getElementById('hapus-msg').innerHTML = `Apakah kamu yakin ingin menghapus <strong>${nama}</strong>? Tindakan ini tidak bisa dibatalkan.`;
+    document.getElementById('hapus-confirm-btn').onclick = () => doHapus(tipe, id);
+    openModal('modal-hapus');
+  }
+
+  async function doHapus(tipe, id) {
+    try {
+      const res = await fetch(`/api/admin/${tipe === 'kendaraan' ? 'kendaraan' : 'sopir'}/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Data berhasil dihapus', 'success');
+        closeModal('modal-hapus');
+        tipe === 'kendaraan' ? (loadKendaraan(), loadDashboard()) : (loadSopir(), loadDashboard());
+      } else {
+        const d = await res.json();
+        showToast(d.error || 'Gagal menghapus', 'error');
+      }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  }
+</script>
+</body>
+</html>

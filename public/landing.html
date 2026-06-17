@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Damri Pesisir Selatan — Live Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Lacak posisi Bus Damri Pesisir Selatan secara real-time. Ketahui bus terdekat sebelum ke halte.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-dark:   #0B4FA3;
+      --blue-mid:    #1A73E8;
+      --blue-light:  #E8F1FF;
+      --blue-pale:   #F2F7FF;
+      --yellow:      #F5C518;
+      --yellow-dark: #D4A800;
+      --white:       #FFFFFF;
+      --gray-text:   #5A6A8A;
+      --gray-light:  #F7F9FF;
+      --text-dark:   #0D1B3E;
+      --text-mid:    #2E3F66;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--white); color: var(--text-dark); overflow-x: hidden; }
+
+    /* SVG icon helper */
+    .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icon svg { display: block; }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #e0eaff;
+      padding: 0 2rem; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
+
+    .nav-logo-icon {
+      width: 38px; height: 38px;
+      background: var(--blue-dark); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    .nav-logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .nav-logo-text span:first-child { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1rem; color: var(--blue-dark); }
+    .nav-logo-text span:last-child { font-size: 0.7rem; color: var(--gray-text); }
+
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { text-decoration: none; font-size: 0.9rem; font-weight: 500; color: var(--text-mid); transition: color 0.2s; }
+    .nav-links a:hover { color: var(--blue-dark); }
+
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--blue-dark); color: white !important;
+      padding: 8px 18px; border-radius: 8px;
+      font-weight: 600 !important; font-size: 0.85rem !important;
+      transition: background 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--blue-mid) !important; }
+
+    /* ── HERO ── */
+    #hero { padding-top: 64px; min-height: 100vh; background: var(--blue-pale); display: flex; align-items: center; position: relative; overflow: hidden; }
+
+    .hero-bg-road { position: absolute; right: 0; top: 0; bottom: 0; width: 55%; pointer-events: none; opacity: 0.07; }
+
+    .hero-content {
+      position: relative; z-index: 2;
+      max-width: 1100px; margin: 0 auto; padding: 4rem 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue-light); color: var(--blue-dark);
+      font-size: 0.78rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 99px; margin-bottom: 1.2rem;
+      border: 1px solid #c5d9f5;
+    }
+    .hero-eyebrow-dot { width: 7px; height: 7px; background: var(--yellow); border-radius: 50%; }
+
+    .hero-title { font-family: 'Poppins', sans-serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; line-height: 1.15; color: var(--text-dark); margin-bottom: 1.2rem; }
+    .hero-title em { font-style: normal; color: var(--blue-dark); position: relative; }
+    .hero-title em::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 4px; background: var(--yellow); border-radius: 2px; }
+
+    .hero-desc { font-size: 1rem; color: var(--gray-text); line-height: 1.7; margin-bottom: 2rem; max-width: 420px; }
+
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue-dark); color: white;
+      padding: 13px 24px; border-radius: 10px;
+      font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--blue-mid); transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; color: var(--blue-dark);
+      padding: 13px 24px; border-radius: 10px;
+      font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      border: 1.5px solid #c5d9f5; transition: border-color 0.2s, transform 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--blue-dark); transform: translateY(-1px); }
+
+    .hero-stats { display: flex; gap: 2rem; margin-top: 2.5rem; }
+    .hero-stat { line-height: 1.2; }
+    .hero-stat-num { font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--blue-dark); }
+    .hero-stat-label { font-size: 0.78rem; color: var(--gray-text); }
+
+    .hero-visual { display: flex; align-items: center; justify-content: center; }
+
+    .hero-map-card {
+      background: white; border-radius: 20px; padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(11,79,163,0.12);
+      width: 100%; max-width: 380px; border: 1px solid #e0eaff;
+    }
+
+    .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .map-header-title { display: flex; align-items: center; gap: 7px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
+
+    .live-badge { display: flex; align-items: center; gap: 5px; background: #ecfdf5; color: #065f46; font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 99px; }
+    .live-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .map-route-vis { background: var(--blue-pale); border-radius: 12px; height: 160px; position: relative; overflow: hidden; margin-bottom: 1rem; }
+    .map-route-svg { width: 100%; height: 100%; }
+
+    .bus-cards { display: flex; flex-direction: column; gap: 8px; }
+    .bus-card-item { display: flex; align-items: center; gap: 10px; background: var(--blue-pale); padding: 10px 12px; border-radius: 10px; }
+    .bus-icon { width: 32px; height: 32px; background: var(--blue-dark); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .bus-card-info { flex: 1; }
+    .bus-card-id { font-weight: 700; font-size: 0.82rem; color: var(--text-dark); }
+    .bus-card-route { font-size: 0.72rem; color: var(--gray-text); }
+    .bus-online { font-size: 0.7rem; font-weight: 600; color: #10b981; }
+    .bus-offline { font-size: 0.7rem; font-weight: 600; color: var(--gray-text); }
+
+    /* ── TENTANG ── */
+    #tentang { padding: 5rem 2rem; background: white; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-eyebrow { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue-dark); margin-bottom: 0.6rem; }
+    .section-title { font-family: 'Poppins', sans-serif; font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; color: var(--text-dark); line-height: 1.25; margin-bottom: 1rem; }
+    .section-desc { font-size: 1rem; color: var(--gray-text); line-height: 1.8; max-width: 560px; }
+
+    .identitas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-top: 3rem; }
+
+    .identitas-logo-area { display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+
+    .damri-logo-big { background: var(--blue-dark); border-radius: 18px; padding: 2rem 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .damri-logo-big .logo-name { font-family: 'Poppins', sans-serif; font-size: 2rem; font-weight: 800; color: white; letter-spacing: 0.08em; }
+    .damri-logo-big .logo-sub { font-size: 0.72rem; font-weight: 600; color: #93C5FD; letter-spacing: 0.15em; text-transform: uppercase; }
+
+    .identitas-badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .id-badge { background: var(--blue-light); color: var(--blue-dark); font-size: 0.78rem; font-weight: 600; padding: 6px 14px; border-radius: 99px; border: 1px solid #c5d9f5; }
+
+    .identitas-facts { display: flex; flex-direction: column; gap: 1.5rem; }
+    .fact-item { display: flex; gap: 1rem; align-items: flex-start; }
+    .fact-icon { width: 44px; height: 44px; background: var(--blue-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .fact-title { font-weight: 600; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 3px; }
+    .fact-desc { font-size: 0.85rem; color: var(--gray-text); line-height: 1.6; }
+
+    /* ── RUTE ── */
+    #rute { padding: 5rem 2rem; background: var(--blue-pale); }
+    .rute-header { text-align: center; margin-bottom: 3rem; }
+    .rute-header .section-desc { margin: 0 auto; }
+    .rute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+
+    .rute-card { background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #e0eaff; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; }
+    .rute-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(11,79,163,0.1); }
+    .rute-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--blue-dark); }
+    .rute-card-accent.yellow { background: var(--yellow); }
+    .rute-num { font-family: 'Poppins', sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--blue-dark); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .rute-id { display: inline-flex; background: var(--blue-dark); color: white; font-size: 0.82rem; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-bottom: 0.8rem; }
+    .rute-name { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.4rem; line-height: 1.3; }
+    .rute-jarak { font-size: 0.78rem; color: var(--gray-text); margin-bottom: 1rem; }
+    .rute-stops { display: flex; flex-direction: column; gap: 6px; }
+    .rute-stop { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-mid); }
+    .stop-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue-light); border: 2px solid var(--blue-dark); flex-shrink: 0; }
+    .stop-dot.end { background: var(--yellow); border-color: var(--yellow-dark); }
+    .rute-line { width: 2px; height: 14px; background: #c5d9f5; margin-left: 3px; }
+
+    /* ── CARA PAKAI ── */
+    #cara-pakai { padding: 5rem 2rem; background: white; }
+    .cara-header { text-align: center; margin-bottom: 3rem; }
+    .steps-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; max-width: 860px; margin: 0 auto; position: relative; }
+    .steps-row::before { content: ''; position: absolute; top: 28px; left: calc(16.66% + 10px); right: calc(16.66% + 10px); height: 2px; background: #e0eaff; z-index: 0; }
+    .step-item { text-align: center; position: relative; z-index: 1; }
+    .step-num { width: 56px; height: 56px; background: var(--blue-dark); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 800; margin: 0 auto 1rem; border: 4px solid var(--blue-pale); }
+    .step-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem; }
+    .step-desc { font-size: 0.85rem; color: var(--gray-text); line-height: 1.6; }
+
+    /* ── CTA ── */
+    #cta { padding: 5rem 2rem; background: var(--blue-dark); position: relative; overflow: hidden; }
+    .cta-bg { position: absolute; inset: 0; pointer-events: none; opacity: 0.06; }
+    .cta-inner { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto; gap: 3rem; align-items: center; }
+    .cta-title { font-family: 'Poppins', sans-serif; font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; color: white; line-height: 1.2; margin-bottom: 0.8rem; }
+    .cta-title span { color: var(--yellow); }
+    .cta-desc { font-size: 1rem; color: #93C5FD; line-height: 1.7; margin-bottom: 2rem; }
+
+    .btn-yellow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--yellow); color: var(--text-dark);
+      padding: 14px 28px; border-radius: 10px;
+      font-weight: 700; font-size: 1rem; text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-yellow:hover { background: #FFD340; transform: translateY(-1px); }
+
+    .cta-qr-box { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; min-width: 160px; }
+    .cta-qr-title { font-size: 0.78rem; font-weight: 600; color: var(--gray-text); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    #qr-nearby { display: block; margin: 0 auto; }
+    .cta-qr-note { font-size: 0.72rem; color: var(--gray-text); margin-top: 0.6rem; }
+
+    /* ── FOOTER ── */
+    footer { background: var(--text-dark); padding: 3rem 2rem 2rem; color: #93A5C5; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 3rem; }
+    .footer-brand .nav-logo { margin-bottom: 0.8rem; }
+    .footer-brand .nav-logo-text span:first-child { color: white; }
+    .footer-tagline { font-size: 0.85rem; line-height: 1.7; color: #6B7EA0; max-width: 280px; }
+    .footer-col h4 { font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 1rem; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .footer-links a { text-decoration: none; font-size: 0.85rem; color: #6B7EA0; transition: color 0.2s; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { max-width: 1100px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid #1A2A4A; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #3D5070; flex-wrap: wrap; gap: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-content { grid-template-columns: 1fr; text-align: center; }
+      .hero-actions { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-desc { margin: 0 auto 2rem; }
+      .hero-eyebrow { margin: 0 auto 1.2rem; }
+      .identitas-grid { grid-template-columns: 1fr; }
+      .identitas-logo-area { align-items: center; }
+      .steps-row { grid-template-columns: 1fr; }
+      .steps-row::before { display: none; }
+      .cta-inner { grid-template-columns: 1fr; text-align: center; }
+      .cta-qr-box { margin: 0 auto; }
+      .footer-inner { grid-template-columns: 1fr; gap: 2rem; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SVG ICON DEFS (reusable) ── -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-bus" viewBox="0 0 24 24" fill="none" stroke="currentColor" color="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M7 15h.01M17 15h.01"/><path d="M6 19v2M18 19v2"/>
+  </symbol>
+  <symbol id="ic-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+  </symbol>
+  <symbol id="ic-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+  </symbol>
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 21V9"/>
+  </symbol>
+  <symbol id="ic-satellite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20.94c1.5.06 2.99-.23 4.35-.86"/><path d="M4.83 9a8 8 0 0114.34 0"/><path d="M2 13c1 5 7 9 10 9"/><circle cx="12" cy="14" r="4"/><path d="M12 10V6"/><path d="M8 14H4"/>
+  </symbol>
+  <symbol id="ic-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+  </symbol>
+  <symbol id="ic-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
+    <path d="M14 14h.01M18 14h.01M14 18h.01M18 18h.01M16 16h.01"/>
+  </symbol>
+  <symbol id="ic-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/>
+  </symbol>
+  <symbol id="ic-location" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+  </symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+  </symbol>
+</svg>
+
+<!-- ── NAVBAR ── -->
+<nav>
+  <a class="nav-logo" href="#hero">
+    <div class="nav-logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <use href="#ic-bus"/>
+      </svg>
+    </div>
+    <div class="nav-logo-text">
+      <span>Damri Tracking</span>
+      <span>Pesisir Selatan</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#tentang">Tentang</a></li>
+    <li><a href="#rute">Rute</a></li>
+    <li><a href="#cara-pakai">Cara Pakai</a></li>
+    <li>
+      <a href="nearby.html" class="nav-cta">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-map"/></svg>
+        Bus Terdekat
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <svg class="hero-bg-road" viewBox="0 0 600 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 800 Q200 600 150 400 Q100 200 300 100 Q450 50 550 0" stroke="#0B4FA3" stroke-width="60" stroke-dasharray="8 8" fill="none"/>
+    <path d="M0 700 Q150 500 100 300 Q80 150 250 50" stroke="#1A73E8" stroke-width="30" fill="none" opacity="0.5"/>
+  </svg>
+
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="hero-eyebrow-dot"></div>
+        Layanan Resmi DAMRI — Pesisir Selatan
+      </div>
+      <h1 class="hero-title">
+        Tahu Posisi Bus<br>
+        Sebelum ke <em>Halte</em>
+      </h1>
+      <p class="hero-desc">
+        Pantau bus Damri Pesisir Selatan secara real-time langsung dari HP kamu. Tidak perlu menunggu lama lagi di pinggir jalan.
+      </p>
+      <div class="hero-actions">
+        <a href="nearby.html" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-map"/></svg>
+          Lihat Bus Terdekat
+        </a>
+        <a href="#rute" class="btn-secondary">
+          Lihat Rute
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-arrow-right"/></svg>
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">4+</div>
+          <div class="hero-stat-label">Rute Aktif</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">Live</div>
+          <div class="hero-stat-label">Real-time GPS</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">Gratis</div>
+          <div class="hero-stat-label">Tanpa Aplikasi</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-map-card">
+        <div class="map-header">
+          <div class="map-header-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-map"/></svg>
+            Peta Armada
+          </div>
+          <div class="live-badge">
+            <div class="live-dot"></div>
+            Live
+          </div>
+        </div>
+
+        <div class="map-route-vis">
+          <svg class="map-route-svg" viewBox="0 0 340 160" xmlns="http://www.w3.org/2000/svg">
+            <rect width="340" height="160" fill="#EEF4FF" rx="8"/>
+            <path d="M20 140 Q80 100 120 80 Q160 60 200 70 Q240 80 280 50 Q310 30 330 20" stroke="#CBD8F0" stroke-width="12" fill="none" stroke-linecap="round"/>
+            <path d="M20 140 Q80 100 120 80 Q160 60 200 70 Q240 80 280 50 Q310 30 330 20" stroke="white" stroke-width="3" fill="none" stroke-dasharray="8 6" stroke-linecap="round"/>
+            <circle cx="20" cy="140" r="6" fill="#0B4FA3" stroke="white" stroke-width="2"/>
+            <circle cx="120" cy="80" r="5" fill="#0B4FA3" stroke="white" stroke-width="2" opacity="0.7"/>
+            <circle cx="200" cy="70" r="5" fill="#0B4FA3" stroke="white" stroke-width="2" opacity="0.7"/>
+            <circle cx="280" cy="50" r="5" fill="#0B4FA3" stroke="white" stroke-width="2" opacity="0.7"/>
+            <circle cx="330" cy="20" r="6" fill="#F5C518" stroke="white" stroke-width="2"/>
+            <text x="10" y="158" font-size="9" fill="#5A6A8A" font-family="Inter,sans-serif">Painan</text>
+            <text x="305" y="16" font-size="9" fill="#5A6A8A" font-family="Inter,sans-serif">Padang</text>
+            <!-- Bus SVG animasi (tanpa emoji) -->
+            <g id="bus-anim">
+              <rect x="0" y="0" width="24" height="15" rx="3" fill="#0B4FA3" stroke="white" stroke-width="1.5"/>
+              <rect x="3" y="2" width="6" height="5" rx="1" fill="#93C5FD" opacity="0.8"/>
+              <rect x="11" y="2" width="6" height="5" rx="1" fill="#93C5FD" opacity="0.8"/>
+              <rect x="2" y="9" width="20" height="1.5" rx="0.5" fill="#1A73E8"/>
+              <circle cx="6" cy="14" r="2" fill="#0D1B3E" stroke="white" stroke-width="0.8"/>
+              <circle cx="18" cy="14" r="2" fill="#0D1B3E" stroke="white" stroke-width="0.8"/>
+            </g>
+          </svg>
+          <script>
+            (function() {
+              const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              path.setAttribute('d', 'M20 140 Q80 100 120 80 Q160 60 200 70 Q240 80 280 50 Q310 30 330 20');
+              let t = 0;
+              const bus = document.getElementById('bus-anim');
+              if (!bus) return;
+              function animateBus() {
+                t = (t + 0.003) % 1;
+                const len = path.getTotalLength ? path.getTotalLength() : 350;
+                const pt = path.getPointAtLength(t * len);
+                bus.setAttribute('transform', `translate(${pt.x - 12}, ${pt.y - 8})`);
+                requestAnimationFrame(animateBus);
+              }
+              animateBus();
+            })();
+          </script>
+        </div>
+
+        <div class="bus-cards">
+          <div class="bus-card-item">
+            <div class="bus-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><use href="#ic-bus"/></svg>
+            </div>
+            <div class="bus-card-info">
+              <div class="bus-card-id">BD-01</div>
+              <div class="bus-card-route">Pasar Sago → Painan</div>
+            </div>
+            <div class="bus-online">● Online</div>
+          </div>
+          <div class="bus-card-item">
+            <div class="bus-icon" style="background:#475569;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><use href="#ic-bus"/></svg>
+            </div>
+            <div class="bus-card-info">
+              <div class="bus-card-id">BD-03</div>
+              <div class="bus-card-route">BIM → Pesisir Selatan</div>
+            </div>
+            <div class="bus-offline">● Offline</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TENTANG ── -->
+<section id="tentang">
+  <div class="container">
+    <div class="identitas-grid">
+      <div class="identitas-logo-area">
+        <div class="damri-logo-big">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#ic-bus"/>
+          </svg>
+          <div class="logo-name">DAMRI</div>
+          <div class="logo-sub">Pesisir Selatan</div>
+        </div>
+        <div class="identitas-badge-row">
+          <span class="id-badge">Perum DAMRI</span>
+          <span class="id-badge">Sumatera Barat</span>
+          <span class="id-badge">Est. 1946</span>
+        </div>
+      </div>
+
+      <div class="identitas-facts">
+        <div>
+          <div class="section-eyebrow">Tentang Layanan</div>
+          <h2 class="section-title">Bus Andalan<br>Pesisir Selatan</h2>
+          <p class="section-desc">
+            Damri Pesisir Selatan melayani masyarakat Kabupaten Pesisir Selatan dengan armada yang beroperasi setiap hari menghubungkan kecamatan-kecamatan pesisir.
+          </p>
+        </div>
+        <div class="fact-item">
+          <div class="fact-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-building"/></svg>
+          </div>
+          <div>
+            <div class="fact-title">Perum DAMRI</div>
+            <div class="fact-desc">Badan Usaha Milik Negara di bawah Kementerian BUMN, melayani transportasi penumpang antar kota.</div>
+          </div>
+        </div>
+        <div class="fact-item">
+          <div class="fact-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-pin"/></svg>
+          </div>
+          <div>
+            <div class="fact-title">Wilayah Operasi</div>
+            <div class="fact-desc">Kabupaten Pesisir Selatan, Sumatera Barat — meliputi jalur Painan, Tapan, dan koneksi ke BIM (Bandara Internasional Minangkabau).</div>
+          </div>
+        </div>
+        <div class="fact-item">
+          <div class="fact-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-dark)" stroke-width="2"><use href="#ic-satellite"/></svg>
+          </div>
+          <div>
+            <div class="fact-title">Sistem Live Tracking</div>
+            <div class="fact-desc">Teknologi GPS real-time berbasis web. Penumpang bisa cek posisi bus langsung dari browser tanpa instal aplikasi.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── RUTE ── -->
+<section id="rute">
+  <div class="container">
+    <div class="rute-header">
+      <div class="section-eyebrow">Rute Operasional</div>
+      <h2 class="section-title">Jalur Aktif Damri<br>Pesisir Selatan</h2>
+      <p class="section-desc">Empat rute utama menghubungkan pusat-pusat keramaian dan kecamatan pesisir.</p>
+    </div>
+    <div class="rute-grid">
+
+      <div class="rute-card">
+        <div class="rute-card-accent"></div>
+        <div class="rute-num">Rute 01</div>
+        <div class="rute-id">BD-01</div>
+        <div class="rute-name">Pasar Sago — Painan</div>
+        <div class="rute-jarak">± 12 km · ~40 menit</div>
+        <div class="rute-stops">
+          <div class="rute-stop"><div class="stop-dot"></div>Pasar Sago</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Pasar Bawah</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>RSUD Painan</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot end"></div>Terminal Painan</div>
+        </div>
+      </div>
+
+      <div class="rute-card">
+        <div class="rute-card-accent"></div>
+        <div class="rute-num">Rute 02</div>
+        <div class="rute-id">BD-02</div>
+        <div class="rute-name">Pasar Baru — Tapan</div>
+        <div class="rute-jarak">± 95 km · ~3 jam</div>
+        <div class="rute-stops">
+          <div class="rute-stop"><div class="stop-dot"></div>Pasar Baru</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Kambang</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Lunang</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot end"></div>Tapan</div>
+        </div>
+      </div>
+
+      <div class="rute-card">
+        <div class="rute-card-accent yellow"></div>
+        <div class="rute-num">Rute 03</div>
+        <div class="rute-id" style="background: var(--yellow-dark);">BD-03</div>
+        <div class="rute-name">BIM — Pesisir Selatan</div>
+        <div class="rute-jarak">± 70 km · ~2 jam</div>
+        <div class="rute-stops">
+          <div class="rute-stop"><div class="stop-dot"></div>BIM (Bandara)</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Duku Interchange</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Painan</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot end"></div>Terminal Ps. Selatan</div>
+        </div>
+      </div>
+
+      <div class="rute-card">
+        <div class="rute-card-accent"></div>
+        <div class="rute-num">Rute 04</div>
+        <div class="rute-id">BD-04</div>
+        <div class="rute-name">Pasar Raya — Indarung</div>
+        <div class="rute-jarak">± 25 km · ~1 jam</div>
+        <div class="rute-stops">
+          <div class="rute-stop"><div class="stop-dot"></div>Pasar Raya Padang</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Simpang Haru</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot"></div>Lubuk Begalung</div>
+          <div class="rute-line"></div>
+          <div class="rute-stop"><div class="stop-dot end"></div>Indarung</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CARA PAKAI ── -->
+<section id="cara-pakai">
+  <div class="container">
+    <div class="cara-header">
+      <div class="section-eyebrow">Cara Menggunakan</div>
+      <h2 class="section-title">Semudah Scan &amp; Pantau</h2>
+      <p class="section-desc" style="margin:0 auto;">Tidak perlu instal aplikasi. Cukup pakai browser HP kamu.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-title">Scan QR atau Buka Link</div>
+        <div class="step-desc">Scan QR yang tertempel di halte atau kendaraan, atau buka langsung dari browser.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-title">Izinkan Akses Lokasi</div>
+        <div class="step-desc">Izinkan browser membaca lokasi GPS kamu agar sistem bisa menghitung bus terdekat.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-title">Pantau Bus di Peta</div>
+        <div class="step-desc">Lihat posisi bus secara real-time di peta. Ketahui berapa menit lagi bus tiba.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section id="cta">
+  <svg class="cta-bg" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="1100" cy="50" r="300" fill="white"/>
+    <circle cx="100" cy="350" r="200" fill="white"/>
+  </svg>
+  <div class="cta-inner">
+    <div>
+      <h2 class="cta-title">Cek Bus Terdekat<br><span>Sekarang Juga</span></h2>
+      <p class="cta-desc">Buka halaman Bus Terdekat dan lihat armada yang sedang aktif di sekitar kamu secara real-time.</p>
+      <a href="nearby.html" class="btn-yellow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-map"/></svg>
+        Buka Bus Terdekat
+      </a>
+    </div>
+    <div class="cta-qr-box">
+      <div class="cta-qr-title">Scan QR ini</div>
+      <canvas id="qr-nearby" width="130" height="130"></canvas>
+      <div class="cta-qr-note">Menuju halaman<br>Bus Terdekat</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#hero" style="display:inline-flex; text-decoration:none;">
+        <div class="nav-logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><use href="#ic-bus"/></svg>
+        </div>
+        <div class="nav-logo-text">
+          <span>Damri Tracking</span>
+          <span style="color:#6B7EA0">Pesisir Selatan</span>
+        </div>
+      </a>
+      <p class="footer-tagline" style="margin-top:0.8rem;">
+        Sistem live tracking Bus Damri Kabupaten Pesisir Selatan, Sumatera Barat.
+      </p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigasi</h4>
+      <ul class="footer-links">
+        <li><a href="#tentang">Tentang</a></li>
+        <li><a href="#rute">Rute</a></li>
+        <li><a href="#cara-pakai">Cara Pakai</a></li>
+        <li><a href="nearby.html">Bus Terdekat</a></li>
+        <li><a href="monitor.html">Monitor Armada</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Tautan</h4>
+      <ul class="footer-links">
+        <li><a href="track.html">Track Kendaraan</a></li>
+        <li><a href="driver.html">Portal Sopir</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Damri Pesisir Selatan. Layanan informasi publik.</span>
+    <span id="admin-hint" style="color:#1A2A4A; cursor:default; font-size:0.72rem;"></span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+  window.addEventListener('load', () => {
+    const nearbyUrl = window.location.origin + '/nearby.html';
+    if (window.QRCode && document.getElementById('qr-nearby')) {
+      QRCode.toCanvas(document.getElementById('qr-nearby'), nearbyUrl, {
+        width: 130, margin: 1,
+        color: { dark: '#0B4FA3', light: '#FFFFFF' }
+      });
+    }
+  });
+
+  // Easter egg: klik logo navbar 5x → buka admin
+  let clickCount = 0;
+  let clickTimer = null;
+  const hint = document.getElementById('admin-hint');
+
+  document.querySelector('.nav-logo').addEventListener('click', (e) => {
+    e.preventDefault();
+    clickCount++;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => { clickCount = 0; hint.textContent = ''; }, 2000);
+    if (clickCount >= 5) {
+      clickCount = 0;
+      hint.textContent = 'Membuka panel admin...';
+      setTimeout(() => window.location.href = '/admin-panel.html', 800);
+    } else if (clickCount >= 2) {
+      hint.textContent = `${5 - clickCount}x lagi...`;
+    }
+  });
+</script>
+</body>
+</html>
