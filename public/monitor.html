@@ -45,7 +45,7 @@
                 <i data-lucide="list" class="icon-sm"></i>
                 Daftar Kendaraan
             </div>
-            <div id="vehicle-list">
+            <div id="vehicle-list" class="custom-scrollbar">
                 <div class="empty-msg">Belum ada kendaraan aktif.</div>
             </div>
         </div>
@@ -142,7 +142,7 @@
                 <div class="v-item" id="item-${v.vehicleCode}" onclick="focusVehicle('${v.vehicleCode}')">
                     <div class="v-item-top">
                         <div class="v-name-row">
-                            <div class="v-dot ${v.isOnline ? 'online' : ''}"></div>
+                            <div class="status-dot status-dot-sm ${v.isOnline ? 'online pulse' : ''}"></div>
                             <span class="v-name">${v.vehicleCode}</span>
                         </div>
                         <span class="v-badge ${v.isOnline ? 'online' : 'offline'}">
