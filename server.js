@@ -1,6 +1,3 @@
-// server.js — Live Tracking Bus
-// Stack: Express + Socket.io + PostgreSQL
-
 require('dotenv').config();
 
 const express = require('express');
@@ -13,25 +10,22 @@ const db      = require('./db');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── Health check — wajib untuk Railway ──────────────────────────────────────
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now() });
+});
+
 // ─── In-memory cache ──────────────────────────────────────────────────────────
-//
-//  vehicleCache[vehicleCode] = {
-//      vehicleId, lat, lng, updatedAt,
-//      driverName, isOnline, sessionId,
-//      _lastSaved   ← timestamp terakhir kali koordinat disimpan ke DB
-//  }
-//
 const vehicleCache  = {};
 const driverSockets = {};
+const DB_SAVE_INTERVAL_MS = 60_000; // simpan ke DB max 1x per menit per kendaraan
 
-// Interval minimum antar simpan koordinat ke DB (ms)
-// Default 60 detik — ubah sesuai kebutuhan
-const DB_SAVE_INTERVAL_MS = 60_000;
+// ─── Root & Short URL ─────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// ─── Static & root ────────────────────────────────────────────────────────────
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/landing.html')));
-
-// ─── Short URL statis untuk QR cetak ─────────────────────────────────────────
+// Short URL untuk QR yang dicetak — aman meski domain berubah
 app.get('/t/:id', (req, res) => {
     res.redirect(302, `/track.html?id=${encodeURIComponent(req.params.id)}`);
 });
@@ -42,9 +36,7 @@ app.get('/d/:id', (req, res) => {
 // ─── API: Daftar sopir per kendaraan ─────────────────────────────────────────
 app.get('/api/drivers/:vehicleId', async (req, res) => {
     try {
-        const { vehicleId } = req.params;
-        const q = req.query.q || '';
-        const list = await db.getDriversByVehicle(vehicleId, q);
+        const list = await db.getDriversByVehicle(req.params.vehicleId, req.query.q || '');
         res.json(list.map(d => ({ name: d.name })));
     } catch (err) {
         console.error('[API /drivers]', err.message);
@@ -91,7 +83,6 @@ app.get('/api/vehicles', async (req, res) => {
 });
 
 // ─── ADMIN API: Kendaraan ─────────────────────────────────────────────────────
-
 app.get('/api/admin/kendaraan', async (req, res) => {
     try {
         const { rows } = await db.pool.query(
@@ -100,7 +91,6 @@ app.get('/api/admin/kendaraan', async (req, res) => {
         );
         res.json(rows);
     } catch (err) {
-        console.error('[ADMIN GET /kendaraan]', err.message);
         res.status(500).json({ error: 'Gagal mengambil data kendaraan.' });
     }
 });
@@ -117,42 +107,36 @@ app.post('/api/admin/kendaraan', async (req, res) => {
         res.status(201).json(rows[0]);
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ error: 'Kode kendaraan sudah ada.' });
-        console.error('[ADMIN POST /kendaraan]', err.message);
         res.status(500).json({ error: 'Gagal menambahkan kendaraan.' });
     }
 });
 
 app.put('/api/admin/kendaraan/:id', async (req, res) => {
     try {
-        const { id } = req.params;
         const { vehicle_code, plate_number, route, is_active } = req.body;
         const { rows } = await db.pool.query(
             `UPDATE vehicles SET vehicle_code=$1, plate_number=$2, route=$3, is_active=$4
              WHERE id=$5 RETURNING *`,
-            [vehicle_code.trim().toUpperCase(), plate_number, route, is_active, id]
+            [vehicle_code.trim().toUpperCase(), plate_number, route, is_active, req.params.id]
         );
         if (!rows.length) return res.status(404).json({ error: 'Kendaraan tidak ditemukan.' });
         res.json(rows[0]);
     } catch (err) {
-        if (err.code === '23505') return res.status(400).json({ error: 'Kode kendaraan sudah dipakai.' });
-        console.error('[ADMIN PUT /kendaraan]', err.message);
+        if (err.code === '23505') return res.status(400).json({ error: 'Kode sudah dipakai.' });
         res.status(500).json({ error: 'Gagal memperbarui kendaraan.' });
     }
 });
 
 app.delete('/api/admin/kendaraan/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        await db.pool.query(`UPDATE vehicles SET is_active=false WHERE id=$1`, [id]);
+        await db.pool.query(`UPDATE vehicles SET is_active=false WHERE id=$1`, [req.params.id]);
         res.json({ success: true });
     } catch (err) {
-        console.error('[ADMIN DELETE /kendaraan]', err.message);
         res.status(500).json({ error: 'Gagal menghapus kendaraan.' });
     }
 });
 
 // ─── ADMIN API: Sopir ─────────────────────────────────────────────────────────
-
 app.get('/api/admin/sopir', async (req, res) => {
     try {
         const { rows } = await db.pool.query(
@@ -164,7 +148,6 @@ app.get('/api/admin/sopir', async (req, res) => {
         );
         res.json(rows);
     } catch (err) {
-        console.error('[ADMIN GET /sopir]', err.message);
         res.status(500).json({ error: 'Gagal mengambil data sopir.' });
     }
 });
@@ -180,41 +163,35 @@ app.post('/api/admin/sopir', async (req, res) => {
         );
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error('[ADMIN POST /sopir]', err.message);
         res.status(500).json({ error: 'Gagal menambahkan sopir.' });
     }
 });
 
 app.put('/api/admin/sopir/:id', async (req, res) => {
     try {
-        const { id } = req.params;
         const { name, phone, pin, vehicle_id, is_active } = req.body;
         const { rows } = await db.pool.query(
             `UPDATE drivers SET name=$1, phone=$2, pin=$3, vehicle_id=$4, is_active=$5
              WHERE id=$6 RETURNING *`,
-            [name.trim(), phone, pin, vehicle_id || null, is_active, id]
+            [name.trim(), phone, pin, vehicle_id || null, is_active, req.params.id]
         );
         if (!rows.length) return res.status(404).json({ error: 'Sopir tidak ditemukan.' });
         res.json(rows[0]);
     } catch (err) {
-        console.error('[ADMIN PUT /sopir]', err.message);
         res.status(500).json({ error: 'Gagal memperbarui sopir.' });
     }
 });
 
 app.delete('/api/admin/sopir/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        await db.pool.query(`UPDATE drivers SET is_active=false WHERE id=$1`, [id]);
+        await db.pool.query(`UPDATE drivers SET is_active=false WHERE id=$1`, [req.params.id]);
         res.json({ success: true });
     } catch (err) {
-        console.error('[ADMIN DELETE /sopir]', err.message);
         res.status(500).json({ error: 'Gagal menghapus sopir.' });
     }
 });
 
 // ─── ADMIN API: Sesi ──────────────────────────────────────────────────────────
-
 app.get('/api/admin/sesi', async (req, res) => {
     try {
         const todayOnly = req.query.today === '1';
@@ -235,30 +212,20 @@ app.get('/api/admin/sesi', async (req, res) => {
         const { rows } = await db.pool.query(sql);
         res.json(rows);
     } catch (err) {
-        console.error('[ADMIN GET /sesi]', err.message);
         res.status(500).json({ error: 'Gagal mengambil data sesi.' });
     }
 });
 
-// ─── Helper: simpan koordinat ke DB dengan throttle ──────────────────────────
-//
-// Dipanggil setiap updateLocation, tapi hanya benar-benar INSERT
-// ke location_logs kalau sudah lewat DB_SAVE_INTERVAL_MS sejak
-// terakhir simpan — sehingga write DB turun dari ratusan/menit
-// menjadi 1x per menit per kendaraan.
-//
-async function throttledLogLocation(vehicleCode, sessionId, vehicleId, lat, lng) {
+// ─── Helper: throttle simpan ke DB ───────────────────────────────────────────
+async function throttledLogLocation(vehicleCode, sessionId, vehicleNumId, lat, lng) {
     const entry = vehicleCache[vehicleCode];
-    if (!entry || !sessionId || !vehicleId) return;
+    if (!entry || !sessionId || !vehicleNumId) return;
 
     const now = Date.now();
-    const lastSaved = entry._lastSaved ?? 0;
-
-    if (now - lastSaved < DB_SAVE_INTERVAL_MS) return; // belum waktunya
+    if (now - (entry._lastSaved ?? 0) < DB_SAVE_INTERVAL_MS) return;
 
     entry._lastSaved = now;
-
-    db.logLocation(sessionId, vehicleId, lat, lng)
+    db.logLocation(sessionId, vehicleNumId, lat, lng)
         .catch(err => console.error('[logLocation]', err.message));
 }
 
@@ -266,7 +233,7 @@ async function throttledLogLocation(vehicleCode, sessionId, vehicleId, lat, lng)
 io.on('connection', (socket) => {
     console.log(`[+] ${socket.id}`);
 
-    // ── Sopir: join setelah login ──────────────────────────────────────────
+    // Sopir join setelah login
     socket.on('driverJoin', async ({ vehicleId, driverName }) => {
         try {
             socket.join(vehicleId);
@@ -274,19 +241,18 @@ io.on('connection', (socket) => {
             driverSockets[socket.id] = vehicleId;
 
             const vehicleNumId = await db.getVehicleId(vehicleId);
-
-            const { rows: driverRows } = await db.pool.query(
+            const { rows: dr } = await db.pool.query(
                 `SELECT d.id FROM drivers d
                  JOIN vehicles v ON v.id = d.vehicle_id
-                 WHERE v.vehicle_code = $1 AND d.name = $2 AND d.is_active = true`,
+                 WHERE v.vehicle_code=$1 AND d.name=$2 AND d.is_active=true`,
                 [vehicleId, driverName]
             );
-            const driverId = driverRows[0]?.id;
+            const driverId = dr[0]?.id;
 
             let sessionId = null;
             if (vehicleNumId && driverId) {
                 sessionId = await db.createSession(vehicleNumId, driverId);
-                console.log(`[Sesi] #${sessionId} dimulai — ${driverName} → ${vehicleId}`);
+                console.log(`[Sesi] #${sessionId} — ${driverName} → ${vehicleId}`);
             }
 
             if (!vehicleCache[vehicleId]) vehicleCache[vehicleId] = {};
@@ -296,7 +262,7 @@ io.on('connection', (socket) => {
                 driverName,
                 sessionId,
                 isOnline:    true,
-                _lastSaved:  0,   // reset agar langsung simpan saat GPS pertama masuk
+                _lastSaved:  0,
             });
             socket.data.sessionId    = sessionId;
             socket.data.vehicleNumId = vehicleNumId;
@@ -304,17 +270,15 @@ io.on('connection', (socket) => {
             io.to(vehicleId).emit('driverStatus', { online: true, vehicleId, driverName });
             io.to('__monitor__').emit('vehicleUpdate', { ...vehicleCache[vehicleId], isOnline: true });
             io.to('__nearby__').emit('vehicleUpdate',  { ...vehicleCache[vehicleId], isOnline: true });
-
         } catch (err) {
             console.error('[driverJoin]', err.message);
         }
     });
 
-    // ── Penumpang: join room kendaraan tertentu ────────────────────────────
+    // Penumpang join room kendaraan
     socket.on('joinRoom', (vehicleId) => {
         socket.join(vehicleId);
         socket.data = { vehicleId, role: 'passenger' };
-
         const cached = vehicleCache[vehicleId];
         if (cached?.lat) socket.emit('locationUpdate', cached);
         socket.emit('driverStatus', {
@@ -324,12 +288,12 @@ io.on('connection', (socket) => {
         });
     });
 
-    // ── Monitor: pantau semua kendaraan ───────────────────────────────────
+    // Monitor
     socket.on('joinMonitor', async () => {
         socket.join('__monitor__');
         socket.data = { role: 'monitor' };
         try {
-            const fromDB   = await db.getAllVehicles();
+            const fromDB = await db.getAllVehicles();
             const snapshot = fromDB.map(v => ({
                 ...v,
                 isOnline:   vehicleCache[v.id]?.isOnline   ?? v.isOnline,
@@ -339,17 +303,16 @@ io.on('connection', (socket) => {
             }));
             socket.emit('allLocations', snapshot);
         } catch (err) {
-            console.error('[joinMonitor]', err.message);
             socket.emit('allLocations', Object.values(vehicleCache));
         }
     });
 
-    // ── Nearby: penumpang di halte lihat semua bus ─────────────────────────
+    // Nearby
     socket.on('joinNearby', async () => {
         socket.join('__nearby__');
         socket.data = { role: 'nearby' };
         try {
-            const fromDB   = await db.getAllVehicles();
+            const fromDB = await db.getAllVehicles();
             const snapshot = fromDB.map(v => ({
                 ...v,
                 isOnline:   vehicleCache[v.id]?.isOnline   ?? v.isOnline,
@@ -363,65 +326,49 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ── Sopir: kirim koordinat ─────────────────────────────────────────────
+    // Update lokasi dari sopir
     socket.on('updateLocation', async ({ vehicleId, lat, lng }) => {
         if (!vehicleId || lat === undefined || lng === undefined) return;
 
-        const updatedAt = Date.now();
-        const entry     = vehicleCache[vehicleId] || {};
-
+        const entry = vehicleCache[vehicleId] || {};
         const payload = {
             ...entry,
             vehicleCode: vehicleId,
-            lat, lng, updatedAt,
-            isOnline:   true,
+            lat, lng,
+            updatedAt: Date.now(),
+            isOnline:  true,
             driverName: entry.driverName || socket.data?.driverName || '—',
         };
         vehicleCache[vehicleId] = payload;
 
-        // Broadcast realtime ke semua room — tidak tunggu DB
         io.to(vehicleId).emit('locationUpdate', payload);
         io.to('__monitor__').emit('vehicleUpdate', payload);
         io.to('__nearby__').emit('vehicleUpdate',  payload);
 
-        // Simpan ke DB dengan throttle (maks 1x per menit per kendaraan)
-        throttledLogLocation(
-            vehicleId,
-            entry.sessionId,
-            entry.vehicleId,
-            lat, lng
-        );
+        throttledLogLocation(vehicleId, entry.sessionId, entry.vehicleId, lat, lng);
     });
 
-    // ── Disconnect ─────────────────────────────────────────────────────────
+    // Disconnect
     socket.on('disconnect', async () => {
         const { vehicleId, role, driverName, sessionId } = socket.data || {};
         console.log(`[-] ${socket.id} (${role}, ${vehicleId || '—'})`);
 
-        if (role === 'driver' && vehicleId) {
-            if (driverSockets[socket.id] === vehicleId) {
-                delete driverSockets[socket.id];
+        if (role === 'driver' && vehicleId && driverSockets[socket.id] === vehicleId) {
+            delete driverSockets[socket.id];
+            if (vehicleCache[vehicleId]) vehicleCache[vehicleId].isOnline = false;
 
-                if (vehicleCache[vehicleId]) {
-                    vehicleCache[vehicleId].isOnline = false;
-                }
+            io.to(vehicleId).emit('driverStatus', { online: false, vehicleId });
+            io.to('__monitor__').emit('vehicleUpdate', {
+                ...(vehicleCache[vehicleId] || {}), vehicleCode: vehicleId, isOnline: false
+            });
+            io.to('__nearby__').emit('vehicleUpdate', {
+                ...(vehicleCache[vehicleId] || {}), vehicleCode: vehicleId, isOnline: false
+            });
 
-                io.to(vehicleId).emit('driverStatus', { online: false, vehicleId });
-                io.to('__monitor__').emit('vehicleUpdate', {
-                    ...(vehicleCache[vehicleId] || {}),
-                    vehicleCode: vehicleId, isOnline: false,
-                });
-                io.to('__nearby__').emit('vehicleUpdate', {
-                    ...(vehicleCache[vehicleId] || {}),
-                    vehicleCode: vehicleId, isOnline: false,
-                });
-
-                // Tutup sesi di DB
-                if (sessionId) {
-                    db.endSession(sessionId)
-                        .then(() => console.log(`[Sesi] #${sessionId} ditutup — ${driverName}`))
-                        .catch(err => console.error('[endSession]', err.message));
-                }
+            if (sessionId) {
+                db.endSession(sessionId)
+                    .then(() => console.log(`[Sesi] #${sessionId} ditutup — ${driverName}`))
+                    .catch(err => console.error('[endSession]', err.message));
             }
         }
     });
@@ -433,8 +380,7 @@ const PORT = process.env.PORT || 3000;
 async function start() {
     await db.testConnection();
     http.listen(PORT, () => {
-        console.log(`Server jalan di http://localhost:${PORT}`);
-        console.log(`[DB] Koordinat disimpan ke DB setiap ${DB_SAVE_INTERVAL_MS / 1000}s per kendaraan`);
+        console.log(`✅ Server jalan di http://localhost:${PORT}`);
     });
 }
 

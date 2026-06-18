@@ -1,15 +1,15 @@
 -- ============================================================
 --  Live Tracking Bus — Database Schema
 --  PostgreSQL 14+
---  Jalankan: psql -d tracking_db -f schema.sql
+--  Jalankan: psql $DATABASE_URL -f db/schema.sql
 -- ============================================================
 
 -- Master kendaraan
 CREATE TABLE IF NOT EXISTS vehicles (
     id           SERIAL PRIMARY KEY,
-    vehicle_code VARCHAR(20)  UNIQUE NOT NULL,   -- "BD-01"
-    plate_number VARCHAR(15),                     -- "BA 1234 XY"
-    route        VARCHAR(100),                    -- "Pasar Sago - Painan"
+    vehicle_code VARCHAR(20)  UNIQUE NOT NULL,
+    plate_number VARCHAR(15),
+    route        VARCHAR(100),
     is_active    BOOLEAN      DEFAULT true,
     created_at   TIMESTAMP    DEFAULT NOW()
 );
@@ -19,23 +19,23 @@ CREATE TABLE IF NOT EXISTS drivers (
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
     phone      VARCHAR(20),
-    pin        VARCHAR(10)  NOT NULL,             -- PIN 4–6 angka (plain text, upgrade ke hash nanti)
+    pin        VARCHAR(10)  NOT NULL,
     vehicle_id INT          REFERENCES vehicles(id) ON DELETE SET NULL,
     is_active  BOOLEAN      DEFAULT true,
     created_at TIMESTAMP    DEFAULT NOW()
 );
 
--- Sesi operasional (satu baris per giliran kerja sopir)
+-- Sesi operasional
 CREATE TABLE IF NOT EXISTS sessions (
     id         SERIAL PRIMARY KEY,
     vehicle_id INT          NOT NULL REFERENCES vehicles(id),
     driver_id  INT          NOT NULL REFERENCES drivers(id),
     started_at TIMESTAMP    DEFAULT NOW(),
-    ended_at   TIMESTAMP,                         -- NULL = masih aktif
-    status     VARCHAR(20)  DEFAULT 'active'      -- active | ended
+    ended_at   TIMESTAMP,
+    status     VARCHAR(20)  DEFAULT 'active'
 );
 
--- Riwayat koordinat GPS (volume tinggi)
+-- Riwayat koordinat GPS
 CREATE TABLE IF NOT EXISTS location_logs (
     id         BIGSERIAL PRIMARY KEY,
     session_id INT          NOT NULL REFERENCES sessions(id),
@@ -45,14 +45,14 @@ CREATE TABLE IF NOT EXISTS location_logs (
     logged_at  TIMESTAMP    DEFAULT NOW()
 );
 
--- ── Indeks penting ──────────────────────────────────────────
+-- ── Indeks ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_location_vehicle  ON location_logs(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_location_time     ON location_logs(logged_at DESC);
 CREATE INDEX IF NOT EXISTS idx_location_session  ON location_logs(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_active    ON sessions(vehicle_id) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_driver_vehicle    ON drivers(vehicle_id);
 
--- ── View: sesi aktif saat ini (shortcut untuk query server) ─
+-- ── View: sesi aktif ────────────────────────────────────────
 CREATE OR REPLACE VIEW active_sessions AS
 SELECT
     s.id         AS session_id,

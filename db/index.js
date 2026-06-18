@@ -1,23 +1,15 @@
 // db/index.js — PostgreSQL connection pool
-// Semua query ke DB lewat file ini
-
 const { Pool } = require('pg');
 
-// Pool otomatis menggunakan DATABASE_URL dari .env
-// Atau bisa set tiap variabel terpisah (PG_HOST, PG_USER, dst.)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    // Kalau tidak pakai URL, uncomment ini:
-    // host:     process.env.PG_HOST     || 'localhost',
-    // port:     parseInt(process.env.PG_PORT) || 5432,
-    // database: process.env.PG_DATABASE || 'tracking_db',
-    // user:     process.env.PG_USER     || 'postgres',
-    // password: process.env.PG_PASSWORD || '',
-    ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
+    ssl: process.env.DATABASE_URL?.includes('localhost')
+        ? false
+        : { rejectUnauthorized: false }
 });
 
 pool.on('error', (err) => {
-    console.error('[DB] Unexpected error on idle client:', err.message);
+    console.error('[DB] Idle client error:', err.message);
 });
 
 // ── Verifikasi koneksi saat startup ────────────────────────
@@ -27,14 +19,13 @@ async function testConnection() {
         console.log(`[DB] PostgreSQL terhubung ✓  (${res.rows[0].now})`);
     } catch (err) {
         console.error('[DB] Gagal terhubung ke PostgreSQL:', err.message);
-        console.error('     Pastikan DATABASE_URL di .env sudah benar.');
+        console.error('     Pastikan DATABASE_URL di environment variable sudah benar.');
         process.exit(1);
     }
 }
 
 // ── Query helpers ───────────────────────────────────────────
 
-/** Ambil daftar sopir berdasarkan vehicle_code, opsional filter nama */
 async function getDriversByVehicle(vehicleCode, query = '') {
     const sql = `
         SELECT d.id, d.name, d.phone
@@ -49,7 +40,6 @@ async function getDriversByVehicle(vehicleCode, query = '') {
     return rows;
 }
 
-/** Verifikasi login sopir — return driver row atau null */
 async function verifyDriver(vehicleCode, name, pin) {
     const sql = `
         SELECT d.id, d.name, d.phone, v.vehicle_code, v.route, v.plate_number
@@ -65,9 +55,7 @@ async function verifyDriver(vehicleCode, name, pin) {
     return rows[0] || null;
 }
 
-/** Buat sesi baru saat sopir mulai bertugas */
 async function createSession(vehicleId, driverId) {
-    // Tutup sesi lama yang masih aktif untuk kendaraan ini (kalau ada)
     await pool.query(
         `UPDATE sessions SET status = 'ended', ended_at = NOW()
          WHERE vehicle_id = $1 AND status = 'active'`,
@@ -80,7 +68,6 @@ async function createSession(vehicleId, driverId) {
     return rows[0].id;
 }
 
-/** Tutup sesi saat sopir selesai bertugas / disconnect */
 async function endSession(sessionId) {
     if (!sessionId) return;
     await pool.query(
@@ -89,25 +76,24 @@ async function endSession(sessionId) {
     );
 }
 
-/** Catat koordinat ke location_logs */
 async function logLocation(sessionId, vehicleId, lat, lng) {
     await pool.query(
-        `INSERT INTO location_logs (session_id, vehicle_id, lat, lng) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO location_logs (session_id, vehicle_id, lat, lng)
+         VALUES ($1, $2, $3, $4)`,
         [sessionId, vehicleId, lat, lng]
     );
 }
 
-/** Ambil semua kendaraan aktif + lokasi terakhir */
 async function getAllVehicles() {
     const sql = `
         SELECT
-            v.vehicle_code  AS id,
+            v.vehicle_code          AS id,
             v.plate_number,
             v.route,
             ll.lat,
             ll.lng,
-            ll.logged_at    AS "updatedAt",
-            ll.driver_name  AS "driverName",
+            ll.logged_at            AS "updatedAt",
+            ll.driver_name          AS "driverName",
             (ase.vehicle_id IS NOT NULL) AS "isOnline",
             EXTRACT(EPOCH FROM (NOW() - ll.logged_at))::INT AS "secsAgo"
         FROM vehicles v
@@ -120,7 +106,6 @@ async function getAllVehicles() {
     return rows;
 }
 
-/** Ambil ID numerik vehicle dari vehicle_code */
 async function getVehicleId(vehicleCode) {
     const { rows } = await pool.query(
         'SELECT id FROM vehicles WHERE vehicle_code = $1',

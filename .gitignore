@@ -1,15 +1,19 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment variables — JANGAN di-commit ke Git!
 .env
 
 # Logs
 *.log
-
-# VSCode (opsional)
-.vscode/
+npm-debug.log*
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# VSCode
+.vscode/
+
+# Build output
+dist/
