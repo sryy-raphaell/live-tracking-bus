@@ -380,7 +380,7 @@ const PORT = process.env.PORT || 3000;
 async function start() {
     await db.testConnection();
     http.listen(PORT, () => {
-        console.log(`✅ Server jalan di http://localhost:${PORT}`);
+        console.log(`Server jalan di http://localhost:${PORT}`);
     });
 }
 
