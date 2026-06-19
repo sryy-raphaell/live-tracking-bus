@@ -143,7 +143,7 @@ nav {
 
 .identitas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-top: 3rem; }
 
-.identitas-logo-area { display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+.identitas-logo-area { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
 
 .damri-logo-big { background: var(--blue-dark); border-radius: 18px; padding: 2rem 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .damri-logo-big .logo-name { font-family: 'Poppins', sans-serif; font-size: 2rem; font-weight: 800; color: white; letter-spacing: 0.08em; }

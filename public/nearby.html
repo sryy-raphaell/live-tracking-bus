@@ -1,144 +1,190 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Bus Terdekat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <link rel="stylesheet" href="css/nearby.css">
-</head>
+    <link rel="stylesheet" href="css/nearby.css" />
+  </head>
 
-<body style="display:flex; flex-direction:column; height:100vh;">
-
+  <body style="display: flex; flex-direction: column; height: 100vh">
     <div id="header">
-        <div>
-            <h1>
-                <i data-lucide="bus-front" class="icon" style="color: var(--accent);"></i>
-                Bus Terdekat
-            </h1>
-            <p id="header-status">Memuat lokasi kamu...</p>
-        </div>
+      <div>
+        <h1>
+          <i
+            data-lucide="bus-front"
+            class="icon"
+            style="color: var(--accent)"
+          ></i>
+          Bus Terdekat
+        </h1>
+        <p id="header-status">Memuat lokasi kamu...</p>
+      </div>
     </div>
 
     <!-- Layar minta izin lokasi -->
     <div id="permission-screen">
-        <div class="permission-icon">
-            <i data-lucide="map-pin" class="icon-xl"></i>
-        </div>
-        <h2>Izinkan Akses Lokasi</h2>
-        <p>Agar bisa menampilkan bus terdekat,<br>aplikasi perlu mengetahui posisi kamu sekarang.</p>
-        <button class="btn btn-primary" onclick="requestLocation()">
-            <i data-lucide="locate-fixed" class="icon-sm"></i>
-            Izinkan Lokasi Saya
-        </button>
+      <div class="permission-icon">
+        <i data-lucide="map-pin" class="icon-xl"></i>
+      </div>
+      <h2>Izinkan Akses Lokasi</h2>
+      <p>
+        Agar bisa menampilkan bus terdekat,<br />aplikasi perlu mengetahui
+        posisi kamu sekarang.
+      </p>
+      <button class="btn btn-primary" onclick="requestLocation()">
+        <i data-lucide="locate-fixed" class="icon-sm"></i>
+        Izinkan Lokasi Saya
+      </button>
     </div>
 
     <!-- Konten utama (tersembunyi dulu) -->
-    <div id="body" style="display:none; flex:1; overflow:hidden;">
-        <div id="map"></div>
-        <div id="panel">
-            <div class="panel-section">
-                <i data-lucide="crosshair" class="icon-sm"></i>
-                Posisi Saya
-            </div>
-            <div id="my-location-box">
-                <div class="my-loc-dot"></div>
-                <div id="my-location-text">Mendeteksi lokasi...</div>
-            </div>
-            <div class="panel-section">
-                <i data-lucide="list" class="icon-sm"></i>
-                Daftar Bus
-            </div>
-            <div id="bus-list" class="custom-scrollbar">
-                <div class="info-msg">Memuat data bus...</div>
-            </div>
+    <div id="body" style="display: none; flex: 1; overflow: hidden">
+      <div id="map"></div>
+      <div id="panel">
+        <div class="panel-section">
+          <i data-lucide="crosshair" class="icon-sm"></i>
+          Posisi Saya
         </div>
+        <div id="my-location-box">
+          <div class="my-loc-dot"></div>
+          <div id="my-location-text">Mendeteksi lokasi...</div>
+        </div>
+        <div class="panel-section">
+          <i data-lucide="list" class="icon-sm"></i>
+          Daftar Bus
+        </div>
+        <div id="bus-list" class="custom-scrollbar">
+          <div class="info-msg">Memuat data bus...</div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Mobile info bar: bus terdekat (muncul di bawah peta) ── -->
     <div id="mobile-info-bar" class="hidden">
-        <div class="mob-bar-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            Estimasi kedatangan bus
-        </div>
-        <div class="mob-bar-content" id="mob-bus-cards">
-            <!-- Diisi oleh JS -->
-        </div>
+      <div class="mob-bar-label">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        Estimasi kemungkinanan kedatangan bus
+      </div>
+      <div class="mob-bar-content" id="mob-bus-cards">
+        <!-- Diisi oleh JS -->
+      </div>
     </div>
 
     <script>
-        // ── State ──────────────────────────────────────────────────────────────
-        let myLat = null, myLng = null;
-        let myMarker = null;
-        let map = null;
-        let vehicles = {};
-        let socket = null;
+      // ── State ──────────────────────────────────────────────────────────────
+      let myLat = null,
+        myLng = null;
+      let myMarker = null;
+      let map = null;
+      let vehicles = {};
+      let socket = null;
 
-        // ── Haversine ─────────────────────────────────────────────────────────
-        function haversine(lat1, lng1, lat2, lng2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) ** 2 +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
+      // ── Haversine ─────────────────────────────────────────────────────────
+      function haversine(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLng = ((lng2 - lng1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
 
-        function formatJarak(m) {
-            if (m === null) return '—';
-            if (m < 1000) return Math.round(m) + ' m';
-            return (m / 1000).toFixed(1) + ' km';
-        }
+      function formatJarak(m) {
+        if (m === null) return "—";
+        if (m < 1000) return Math.round(m) + " m";
+        return (m / 1000).toFixed(1) + " km";
+      }
 
-        function etaText(m) {
-            if (m === null || !isFinite(m)) return null;
-            if (m < 300) return '<i data-lucide="circle-check" class="icon-sm" style="color:var(--success);"></i> Sebentar lagi tiba!';
-            if (m < 800) return '<i data-lucide="clock" class="icon-sm" style="color:var(--warning);"></i> ±' + Math.round(m / 80) + ' menit';
-            if (m < 3000) return '<i data-lucide="clock" class="icon-sm" style="color:var(--warning);"></i> ±' + Math.round(m / 300) + ' menit';
-            return '<i data-lucide="alert-circle" class="icon-sm" style="color:var(--danger);"></i> Masih jauh (~' + Math.round(m / 300) + ' menit)';
-        }
+      function etaText(m) {
+        if (m === null || !isFinite(m)) return null;
+        if (m < 300)
+          return '<i data-lucide="circle-check" class="icon-sm" style="color:var(--success);"></i> Sebentar lagi tiba!';
+        if (m < 800)
+          return (
+            '<i data-lucide="clock" class="icon-sm" style="color:var(--warning);"></i> ±' +
+            Math.round(m / 80) +
+            " menit"
+          );
+        if (m < 3000)
+          return (
+            '<i data-lucide="clock" class="icon-sm" style="color:var(--warning);"></i> ±' +
+            Math.round(m / 300) +
+            " menit"
+          );
+        return (
+          '<i data-lucide="alert-circle" class="icon-sm" style="color:var(--danger);"></i> Masih jauh (~' +
+          Math.round(m / 300) +
+          " menit)"
+        );
+      }
 
-        // ETA teks sederhana untuk mobile (tanpa ikon HTML)
-        function etaMobile(m) {
-            if (m === null || !isFinite(m)) return null;
-            if (m < 300)  return { text: 'Segera tiba!',                 cls: 'soon' };
-            if (m < 800)  return { text: '±' + Math.round(m / 80) + ' menit',    cls: 'warn' };
-            if (m < 3000) return { text: '±' + Math.round(m / 300) + ' menit',   cls: 'warn' };
-            return        { text: '~' + Math.round(m / 300) + ' menit',  cls: 'far'  };
-        }
+      // ETA teks sederhana untuk mobile (tanpa ikon HTML)
+      function etaMobile(m) {
+        if (m === null || !isFinite(m)) return null;
+        if (m < 300) return { text: "Segera tiba!", cls: "soon" };
+        if (m < 800)
+          return { text: "±" + Math.round(m / 80) + " menit", cls: "warn" };
+        if (m < 3000)
+          return { text: "±" + Math.round(m / 300) + " menit", cls: "warn" };
+        return { text: "~" + Math.round(m / 300) + " menit", cls: "far" };
+      }
 
-        function distanceClass(m) {
-            if (m === null) return 'nodata';
-            if (m < 500) return 'near';
-            if (m < 2000) return 'medium';
-            return 'far';
-        }
+      function distanceClass(m) {
+        if (m === null) return "nodata";
+        if (m < 500) return "near";
+        if (m < 2000) return "medium";
+        return "far";
+      }
 
-        // ── Init peta ─────────────────────────────────────────────────────────
-        function initMap(lat, lng) {
-            map = L.map('map').setView([lat, lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors', maxZoom: 19
-            }).addTo(map);
+      // ── Init peta ─────────────────────────────────────────────────────────
+      function initMap(lat, lng) {
+        map = L.map("map").setView([lat, lng], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
 
-            myMarker = L.circleMarker([lat, lng], {
-                radius: 10, fillColor: '#3b82f6', color: 'white',
-                weight: 3, fillOpacity: 1
-            }).addTo(map).bindPopup('📍 Posisi kamu').openPopup();
-        }
+        myMarker = L.circleMarker([lat, lng], {
+          radius: 10,
+          fillColor: "#3b82f6",
+          color: "white",
+          weight: 3,
+          fillOpacity: 1,
+        })
+          .addTo(map)
+          .bindPopup("📍 Posisi kamu")
+          .openPopup();
+      }
 
-        function makeBusIcon(label, online) {
-            return L.divIcon({
-                html: `<div style="
-                background:${online ? '#0ea5e9' : '#475569'};
+      function makeBusIcon(label, online) {
+        return L.divIcon({
+          html: `<div style="
+                background:${online ? "#0ea5e9" : "#475569"};
                 border-radius:50% 50% 50% 0;
                 transform:rotate(-45deg);
                 width:34px;height:34px;
@@ -149,83 +195,90 @@
             </div>
             <div style="
                 text-align:center;font-size:9px;font-weight:700;color:white;
-                background:${online ? '#0284c7' : '#334155'};
+                background:${online ? "#0284c7" : "#334155"};
                 border-radius:4px;padding:1px 4px;margin-top:2px;
                 white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;">
                 ${label}
             </div>`,
-                iconSize: [38, 50], iconAnchor: [19, 46], className: ''
-            });
+          iconSize: [38, 50],
+          iconAnchor: [19, 46],
+          className: "",
+        });
+      }
+
+      // ── Render desktop sidebar ─────────────────────────────────────────────
+      function renderList() {
+        const list = document.getElementById("bus-list");
+
+        const sorted = getSortedVehicles();
+
+        if (!sorted.length) {
+          list.innerHTML =
+            '<div class="info-msg">Belum ada bus aktif saat ini.</div>';
+          renderMobileBar([]);
+          return;
         }
 
-        // ── Render desktop sidebar ─────────────────────────────────────────────
-        function renderList() {
-            const list = document.getElementById('bus-list');
-
-            const sorted = getSortedVehicles();
-
-            if (!sorted.length) {
-                list.innerHTML = '<div class="info-msg">Belum ada bus aktif saat ini.</div>';
-                renderMobileBar([]);
-                return;
-            }
-
-            list.innerHTML = sorted.map((v, i) => {
-                const isNearest = i === 0 && v.isOnline && v.dist !== null;
-                const eta = v.isOnline ? etaText(v.dist) : null;
-                return `
-            <div class="bus-item ${isNearest ? 'nearest' : ''} ${!v.isOnline ? 'offline' : ''}"
+        list.innerHTML = sorted
+          .map((v, i) => {
+            const isNearest = i === 0 && v.isOnline && v.dist !== null;
+            const eta = v.isOnline ? etaText(v.dist) : null;
+            return `
+            <div class="bus-item ${isNearest ? "nearest" : ""} ${!v.isOnline ? "offline" : ""}"
                  onclick="focusBus('${v.vehicleId}')">
-                ${isNearest ? '<div class="nearest-badge">Terdekat</div>' : ''}
+                ${isNearest ? '<div class="nearest-badge">Terdekat</div>' : ""}
                 <div class="bus-top">
                     <div class="bus-name-row">
-                        <div class="status-dot status-dot-sm ${v.isOnline ? 'online pulse' : ''}"></div>
+                        <div class="status-dot status-dot-sm ${v.isOnline ? "online pulse" : ""}"></div>
                         <span class="bus-name">${v.vehicleId}</span>
                     </div>
                     <span class="distance-badge ${distanceClass(v.dist)}">
-                        ${v.dist !== null ? formatJarak(v.dist) : 'Offline'}
+                        ${v.dist !== null ? formatJarak(v.dist) : "Offline"}
                     </span>
                 </div>
                 <div class="bus-detail">
-                    Sopir: <span>${v.driverName || '—'}</span>
+                    Sopir: <span>${v.driverName || "—"}</span>
                 </div>
-                ${eta ? `<div class="eta-text">${eta}</div>` : ''}
+                ${eta ? `<div class="eta-text">${eta}</div>` : ""}
             </div>`;
-            }).join('');
+          })
+          .join("");
 
-            lucide.createIcons();
-            renderMobileBar(sorted);
+        lucide.createIcons();
+        renderMobileBar(sorted);
+      }
+
+      // ── Render mobile info bar ─────────────────────────────────────────────
+      function renderMobileBar(sorted) {
+        const bar = document.getElementById("mobile-info-bar");
+        const cards = document.getElementById("mob-bus-cards");
+
+        if (!sorted.length) {
+          bar.classList.add("hidden");
+          return;
         }
 
-        // ── Render mobile info bar ─────────────────────────────────────────────
-        function renderMobileBar(sorted) {
-            const bar   = document.getElementById('mobile-info-bar');
-            const cards = document.getElementById('mob-bus-cards');
+        bar.classList.remove("hidden");
 
-            if (!sorted.length) {
-                bar.classList.add('hidden');
-                return;
-            }
+        cards.innerHTML = sorted
+          .map((v, i) => {
+            const isNearest = i === 0 && v.isOnline && v.dist !== null;
+            const eta = v.isOnline ? etaMobile(v.dist) : null;
+            const distLabel = v.dist !== null ? formatJarak(v.dist) : "Offline";
+            const dCls = v.dist !== null ? distanceClass(v.dist) : "nodata";
 
-            bar.classList.remove('hidden');
-
-            cards.innerHTML = sorted.map((v, i) => {
-                const isNearest = i === 0 && v.isOnline && v.dist !== null;
-                const eta       = v.isOnline ? etaMobile(v.dist) : null;
-                const distLabel = v.dist !== null ? formatJarak(v.dist) : 'Offline';
-                const dCls      = v.dist !== null ? distanceClass(v.dist) : 'nodata';
-
-                return `
-                <div class="mob-bus-card ${isNearest ? 'nearest' : ''} ${!v.isOnline ? 'offline' : ''}"
+            return `
+                <div class="mob-bus-card ${isNearest ? "nearest" : ""} ${!v.isOnline ? "offline" : ""}"
                      onclick="focusBus('${v.vehicleId}')">
                     <div class="mob-bus-top">
                         <div class="mob-bus-name">
-                            <div class="mob-dot ${v.isOnline ? 'online' : ''}"></div>
+                            <div class="mob-dot ${v.isOnline ? "online" : ""}"></div>
                             ${v.vehicleId}
                         </div>
                         <span class="mob-dist-badge ${dCls}">${distLabel}</span>
                     </div>
-                    ${eta
+                    ${
+                      eta
                         ? `<div class="mob-eta ${eta.cls}">
                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2.5"
@@ -236,106 +289,126 @@
                            </div>`
                         : `<div class="mob-eta far">Offline</div>`
                     }
-                    <div class="mob-driver">${v.driverName || '—'}</div>
+                    <div class="mob-driver">${v.driverName || "—"}</div>
                 </div>`;
-            }).join('');
+          })
+          .join("");
+      }
+
+      function getSortedVehicles() {
+        return Object.values(vehicles)
+          .map((v) => {
+            const dist =
+              myLat && v.lat ? haversine(myLat, myLng, v.lat, v.lng) : null;
+            return { ...v, dist };
+          })
+          .sort((a, b) => {
+            if (a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
+            if (a.dist === null) return 1;
+            if (b.dist === null) return -1;
+            return a.dist - b.dist;
+          });
+      }
+
+      function focusBus(vehicleId) {
+        const v = vehicles[vehicleId];
+        if (!v || !v.lat) return;
+        map.setView([v.lat, v.lng], 16);
+        if (v.marker) v.marker.openPopup();
+      }
+
+      function upsertVehicle(data) {
+        // const { vehicleId, lat, lng, isOnline, driverName } = data;
+
+        const vehicleId = data.vehicleId || data.id;
+        const { lat, lng, isOnline, driverName } = data;
+
+        const existing = vehicles[vehicleId] || {};
+
+        vehicles[vehicleId] = {
+          ...existing,
+          vehicleId,
+          lat,
+          lng,
+          isOnline: isOnline !== undefined ? isOnline : existing.isOnline,
+          driverName: driverName || existing.driverName || "—",
+        };
+
+        const v = vehicles[vehicleId];
+
+        if (map && lat && lng) {
+          const icon = makeBusIcon(vehicleId, v.isOnline);
+          const popup = `<b>${vehicleId}</b><br>Sopir: ${v.driverName || "—"}<br>${v.isOnline ? "🟢 Online" : "⚫ Offline"}`;
+          if (!v.marker) {
+            v.marker = L.marker([lat, lng], { icon })
+              .addTo(map)
+              .bindPopup(popup);
+          } else {
+            v.marker.setLatLng([lat, lng]);
+            v.marker.setIcon(icon);
+            v.marker.setPopupContent(popup);
+          }
+          vehicles[vehicleId].marker = v.marker;
         }
 
-        function getSortedVehicles() {
-            return Object.values(vehicles)
-                .map(v => {
-                    const dist = (myLat && v.lat) ? haversine(myLat, myLng, v.lat, v.lng) : null;
-                    return { ...v, dist };
-                })
-                .sort((a, b) => {
-                    if (a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
-                    if (a.dist === null) return 1;
-                    if (b.dist === null) return -1;
-                    return a.dist - b.dist;
-                });
+        renderList();
+      }
+
+      // ── Minta izin lokasi ─────────────────────────────────────────────────
+      function requestLocation() {
+        if (!("geolocation" in navigator)) {
+          alert("GPS tidak didukung di HP ini.");
+          return;
         }
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            myLat = pos.coords.latitude;
+            myLng = pos.coords.longitude;
 
-        function focusBus(vehicleId) {
-            const v = vehicles[vehicleId];
-            if (!v || !v.lat) return;
-            map.setView([v.lat, v.lng], 16);
-            if (v.marker) v.marker.openPopup();
-        }
+            document.getElementById("permission-screen").style.display = "none";
+            document.getElementById("body").style.display = "flex";
+            document.getElementById("header-status").innerText =
+              "Live · Memperbarui otomatis";
+            document.getElementById("my-location-text").innerText =
+              `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
 
-        function upsertVehicle(data) {
-            const { vehicleId, lat, lng, isOnline, driverName } = data;
-            const existing = vehicles[vehicleId] || {};
-
-            vehicles[vehicleId] = {
-                ...existing, vehicleId, lat, lng,
-                isOnline: isOnline !== undefined ? isOnline : existing.isOnline,
-                driverName: driverName || existing.driverName || '—'
-            };
-
-            const v = vehicles[vehicleId];
-
-            if (map && lat && lng) {
-                const icon  = makeBusIcon(vehicleId, v.isOnline);
-                const popup = `<b>${vehicleId}</b><br>Sopir: ${v.driverName || '—'}<br>${v.isOnline ? '🟢 Online' : '⚫ Offline'}`;
-                if (!v.marker) {
-                    v.marker = L.marker([lat, lng], { icon }).addTo(map).bindPopup(popup);
-                } else {
-                    v.marker.setLatLng([lat, lng]);
-                    v.marker.setIcon(icon);
-                    v.marker.setPopupContent(popup);
-                }
-                vehicles[vehicleId].marker = v.marker;
+            if (!map) {
+              initMap(myLat, myLng);
+              initSocket();
+            } else {
+              myMarker.setLatLng([myLat, myLng]);
             }
 
             renderList();
-        }
-
-        // ── Minta izin lokasi ─────────────────────────────────────────────────
-        function requestLocation() {
-            if (!('geolocation' in navigator)) {
-                alert('GPS tidak didukung di HP ini.');
-                return;
+          },
+          (err) => {
+            document.getElementById("header-status").innerText =
+              "Lokasi tidak bisa diakses";
+            if (err.code === 1) {
+              alert(
+                "Izin lokasi ditolak. Mohon izinkan akses lokasi di pengaturan browser.",
+              );
             }
-            navigator.geolocation.watchPosition(
-                (pos) => {
-                    myLat = pos.coords.latitude;
-                    myLng = pos.coords.longitude;
+          },
+          { enableHighAccuracy: true, maximumAge: 5000 },
+        );
+      }
 
-                    document.getElementById('permission-screen').style.display = 'none';
-                    document.getElementById('body').style.display = 'flex';
-                    document.getElementById('header-status').innerText = 'Live · Memperbarui otomatis';
-                    document.getElementById('my-location-text').innerText =
-                        `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+      // ── Socket.io ─────────────────────────────────────────────────────────
+      function initSocket() {
+        socket = io();
+        socket.on("connect", () => {
+          socket.emit("joinNearby");
+        });
+        socket.on("allLocations", (list) => {
+          list.forEach((v) => upsertVehicle(v));
+        });
+        socket.on("vehicleUpdate", (data) => {
+          upsertVehicle(data);
+        });
+      }
 
-                    if (!map) {
-                        initMap(myLat, myLng);
-                        initSocket();
-                    } else {
-                        myMarker.setLatLng([myLat, myLng]);
-                    }
-
-                    renderList();
-                },
-                (err) => {
-                    document.getElementById('header-status').innerText = 'Lokasi tidak bisa diakses';
-                    if (err.code === 1) {
-                        alert('Izin lokasi ditolak. Mohon izinkan akses lokasi di pengaturan browser.');
-                    }
-                },
-                { enableHighAccuracy: true, maximumAge: 5000 }
-            );
-        }
-
-        // ── Socket.io ─────────────────────────────────────────────────────────
-        function initSocket() {
-            socket = io();
-            socket.on('connect', () => { socket.emit('joinNearby'); });
-            socket.on('allLocations', (list) => { list.forEach(v => upsertVehicle(v)); });
-            socket.on('vehicleUpdate', (data) => { upsertVehicle(data); });
-        }
-
-        lucide.createIcons();
+      lucide.createIcons();
     </script>
-</body>
-
+  </body>
 </html>

@@ -269,7 +269,7 @@
                 background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 9px 12px;
-                min-width: 145px;
+                min-width: 180px;
                 border: 1px solid transparent;
                 transition: border-color 0.2s;
             }
