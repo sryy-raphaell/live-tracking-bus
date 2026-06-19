@@ -225,6 +225,7 @@
 
         @media (max-width: 600px) {
             #mobile-info-bar {
+                height: 30vh;
                 display: flex;
                 flex-direction: column;
                 gap: 0;
@@ -373,7 +374,6 @@
 
             /* Peta mengisi sisa ruang */
             #body {
-                height: 70vh;
                 flex: 1;
                 overflow: hidden;
                 display: flex;
@@ -381,6 +381,7 @@
             }
 
             #map {
-                flex: 1;
+                height: 70vh;
+                flex: none;
             }
         }
