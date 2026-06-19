@@ -1,5 +1,5 @@
         body {
-            height: 70vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -373,6 +373,7 @@
 
             /* Peta mengisi sisa ruang */
             #body {
+                height: 70vh;
                 flex: 1;
                 overflow: hidden;
                 display: flex;
