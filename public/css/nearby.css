@@ -225,7 +225,7 @@
 
         @media (max-width: 600px) {
             #mobile-info-bar {
-                height: 15vh;
+                height: 25vh;
                 display: flex;
                 flex-direction: column;
                 gap: 0;
@@ -381,7 +381,7 @@
             }
 
             #map {
-                height: 85vh;
+                height: 75vh;
                 flex: none;
             }
         }
