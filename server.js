@@ -22,7 +22,7 @@ const DB_SAVE_INTERVAL_MS = 60_000; // simpan ke DB max 1x per menit per kendara
 
 // ─── Root & Short URL ─────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 
 // Short URL untuk QR yang dicetak — aman meski domain berubah
