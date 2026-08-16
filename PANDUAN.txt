@@ -1,0 +1,40 @@
+================================================================
+       DAMRI PESISIR SELATAN - PANDUAN PENGGUNAAN
+================================================================
+
+PERTAMA KALI (INSTALASI):
+--------------------------
+1. Klik kanan INSTALL.bat -> "Run as administrator"
+2. Tunggu sampai selesai (5-15 menit tergantung internet)
+3. Setelah muncul "INSTALASI SELESAI", tutup jendela
+
+SETIAP HARI (OPERASIONAL):
+---------------------------
+1. Double-click JALANKAN.bat
+2. Tunggu sampai muncul alamat http://...
+3. Server sudah aktif - JANGAN TUTUP jendela ini!
+
+JIKA BUS SUDAH SELESAI BEROPERASI:
+------------------------------------
+1. Double-click STOP.bat  (atau tutup jendela JALANKAN)
+
+JIKA PERLU AKSES DARI INTERNET (BUKAN HANYA WiFi LOKAL):
+----------------------------------------------------------
+1. Jalankan JALANKAN.bat dulu (server harus aktif)
+2. Buka jendela baru -> Double-click TUNNEL_INTERNET.bat
+3. Salin URL https://xxxx.trycloudflare.com yang muncul
+4. Bagikan URL itu ke sopir dan penumpang
+
+CATATAN PENTING:
+-----------------
+- PC harus tetap menyala dan terhubung internet saat beroperasi
+- Jangan tutup jendela JALANKAN.bat selama bus jalan
+- Password database: damri2025pg (jangan dibagikan)
+- Admin panel: http://localhost:3000/admin-panel.html
+  Password admin: damri2025
+
+MASALAH UMUM:
+--------------
+- "Server tidak bisa dibuka" -> Pastikan JALANKAN.bat sudah jalan
+- "Sopir tidak bisa login" -> Cek koneksi WiFi atau gunakan TUNNEL
+- Server lambat pertama kali dibuka -> Normal, tunggu 5-10 detik
